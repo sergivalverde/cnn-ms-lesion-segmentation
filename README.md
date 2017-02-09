@@ -3,8 +3,4 @@
 
 
 
-A caterpillar,
 
-this deep in fall–
-
-still not a butterfly
