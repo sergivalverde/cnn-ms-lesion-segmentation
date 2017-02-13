@@ -57,7 +57,7 @@ def cascade_model(options):
     """
 
     # model options
-    channels = options['channels']
+    channels = len(options['modalities'])
     train_split_perc = options['train_split']
     num_epochs = options['max_epochs']
     max_epochs_patience = options['patience']

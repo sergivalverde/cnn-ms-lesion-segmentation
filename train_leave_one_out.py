@@ -1,38 +1,36 @@
+# ------------------------------------------------------------------------------------------------------------
+#   CNN training using leave-one-out 
+#  
+#   script used for training and testing a set of images using leave-one-out cross_validation classification.
+#   This is an example script which is designed for our own experiments, where each training image is inside
+#   a separate folder, and images modality names are consistent across the training set:
+#
+#   /TRAIN_FOLDER
+#    ... /image_1
+#         ... T1_name.nii.gz
+#         ... FLAIR_name.nii.gz
+#         ...
+#         ... lesion_annotation.nii.gz
+#    .../image_n
+#         ... T1_name.nii.gz
+#         ... FLAIR_name.nii.gz
+#         ...
+#         ... lesion_annotation.nii.gz
+#
+#
+#  All model and image options are selected from the config.py file, so this script should work for different
+#  databases 
+#
+#  Sergi Valverde 2017
+# ------------------------------------------------------------------------------------------------------------
+
+
 import os
 from collections import OrderedDict
 from data_utils import *
 from build_model_nolearn import cascade_model
+from config import *
 
-# --------------------------------------------------
-# hyper-parameters
-# --------------------------------------------------
-options = {}
-options['train_folder'] = '/mnt/DATA/w/CNN/images/VH_all'
-options['test_folder'] = '/mnt/DATA/w/CNN/images/VH_all'  # leave-one-out
-options['experiment'] = 'test_CNN'
-options['min_th'] = 1
-options['patch_size'] = (11,11,11)
-options['randomize_train'] = True
-options['fully_convolutional'] = False
-options['modalities'] = ['T1', 'FLAIR']
-options['x_names'] = ['T1.nii.gz', 'FLAIR.nii.gz']
-options['y_names'] = ['lesion_bin.nii.gz']
-
-# --------------------------------------------------
-# model parameters
-# --------------------------------------------------
-options['weight_paths'] = None
-options['experiment'] = 'VH1_lou'
-options['channels'] = 2
-options['train_split'] = 0.25
-options['max_epochs'] = 200
-options['patience'] = 25
-options['batch_size'] = 50000
-options['t_bin'] = 0.8
-options['l_min'] = 20
-# --------------------------------------------------
-# TRAIN/TEST using leave-one-out training 
-# -------------------------------------------------- 
 
 list_of_scans = os.listdir(options['train_folder'])
 list_of_scans.sort()
@@ -53,11 +51,8 @@ for scan in list_of_scans:
     options['test_scan'] = scan 
 
     # select test data
-    test_x_data = {}
-    test_x_data[test_scan] = {}
-    test_x_data[test_scan]['FLAIR'] = os.path.join(options['test_folder'], scan, 'FLAIR.nii.gz')
-    test_x_data[test_scan]['T1'] = os.path.join(options['test_folder'], scan, 'T1.nii.gz')
-
+    test_x_data = {scan: {m: os.path.join(options['test_folder'], scan, n) for m, n in zip(modalities, x_names)}}
+                   
     # organize the experiment: save models and traiining images inside a predifined folder
     # network parameters and weights are stored inside test_folder/experiment/nets/
     # training images are stored inside test_folder/experiment/.train
