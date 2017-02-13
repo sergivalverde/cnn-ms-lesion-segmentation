@@ -1,9 +1,8 @@
 import os
 import numpy as np
 from lasagne.layers import InputLayer, DenseLayer, DropoutLayer, FeaturePoolLayer, LocalResponseNormalization2DLayer, BatchNormLayer
-from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer, Conv2DDNNLayer, MaxPool2DDNNLayer, Pool3DDNNLayer, batch_norm_dnn
+from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer, Pool3DDNNLayer, batch_norm_dnn
 from lasagne import nonlinearities, objectives, updates
-from lasagne.init import GlorotUniform, HeUniform
 from lasagne.nonlinearities import softmax, rectify
 from nolearn.lasagne import NeuralNet, BatchIterator, TrainSplit
 from nolearn.lasagne.handlers import SaveWeights
@@ -43,7 +42,6 @@ class Rotate_batch_Iterator(BatchIterator):
         Xb[indices] = np.stack([augmented_x[i,r_indices[i],:,:,:,:] for i in range(augmented_x.shape[0])])
         
         return Xb, yb
-
 
 
 def cascade_model(options):
