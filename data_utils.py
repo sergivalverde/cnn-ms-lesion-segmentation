@@ -9,7 +9,6 @@ import cPickle
 import copy
 from operator import add
 
-
 def load_training_data(train_x_data, train_y_data, options, model = None):
     '''
     Load training and label samples for all given scans and modalities.
@@ -51,13 +50,12 @@ def load_training_data(train_x_data, train_y_data, options, model = None):
         
     # extract patches and labels for each of the modalities
     data = []
+
     for m in modalities:
         x_data = [train_x_data[s][m] for s in scans]
         y_data = [train_y_data[s] for s in scans]
         x_patches, y_patches = load_train_patches(x_data, y_data, selected_voxels, options['patch_size'])
         data.append(x_patches)
-        
-
     # stack patches in channels [samples, channels, p1, p2, p3]
     X = np.stack(data, axis = 1)
     Y = y_patches
@@ -174,6 +172,8 @@ def load_test_patches(test_x_data, patch_size, batch_size, voxel_candidates = No
 
     # load all image modalities and normalize intensities 
     images = []
+
+
     for m in modalities:
         raw_images = [load_nii(test_x_data[s][m]).get_data() for s in scans]
         images.append([(im.astype(dtype=datatype) - im[np.nonzero(im)].mean()) / im[np.nonzero(im)].std() for im in raw_images])
@@ -213,7 +213,7 @@ def get_mask_voxels(mask):
 
 def get_patches(image, centers, patch_size=(15, 15, 15)):
     """
-    Get image patches of arbitrary size based on a set of centers 
+    Get image patches of arbitrary size based on a set of centers
     """
     # If the size has even numbers, the patch will be centered. If not, it will try to create an square almost centered.
     # By doing this we allow pooling when using encoders/unets.

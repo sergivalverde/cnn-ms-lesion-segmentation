@@ -81,7 +81,6 @@ for scan in list_of_scans:
     #load training data
     X, Y = load_training_data(train_x_data, train_y_data, options)
     print scan, ': cnn1 train_x ', X.shape
-
     # fit the model
     model[0].fit(X, Y)
 
@@ -93,6 +92,7 @@ for scan in list_of_scans:
     print scan, ': cnn2 loading training data.....'
     X, Y = load_training_data(train_x_data, train_y_data, options,  model = model[0])
     print scan, ': cnn2 train_x ', X.shape
+    # fit the model
     model[1].fit(X, Y)
 
     # --------------------------------------------------

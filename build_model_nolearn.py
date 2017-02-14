@@ -75,7 +75,7 @@ def cascade_model(options):
     # first model
     # --------------------------------------------------
     
-    layer1 = InputLayer(name='in', shape=(None, channels) + options['patch_size'])
+    layer1 = InputLayer(name='in1', shape=(None, channels) + options['patch_size'])
     layer1 = batch_norm_dnn(Conv3DDNNLayer(layer1, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
     layer1 = Pool3DDNNLayer(layer1,  name='avgpool_1', mode='max', pool_size=2, stride=2)
     layer1 = batch_norm_dnn(Conv3DDNNLayer(layer1, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
@@ -107,7 +107,7 @@ def cascade_model(options):
     # second model
     # --------------------------------------------------
     
-    layer2 = InputLayer(name='in', shape=(None, channels) + options['patch_size'])
+    layer2 = InputLayer(name='in2', shape=(None, channels) + options['patch_size'])
     layer2 = batch_norm_dnn(Conv3DDNNLayer(layer2, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
     layer2 = Pool3DDNNLayer(layer2,  name='avgpool_1', mode='max', pool_size=2, stride=2)
     layer2 = batch_norm_dnn(Conv3DDNNLayer(layer2, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
@@ -118,8 +118,8 @@ def cascade_model(options):
 
     # save weights 
     net_model = 'model_2'
-    net_weights = os.path.join(options['weight_paths'], options['experiment'], 'nets',  net_model + '.pkl' )
-    net_history  = os.path.join(options['weight_paths'], options['experiment'], 'nets', net_model + '_history.pkl')
+    net_weights2 = os.path.join(options['weight_paths'], options['experiment'], 'nets',  net_model + '.pkl' )
+    net_history2  = os.path.join(options['weight_paths'], options['experiment'], 'nets', net_model + '_history.pkl')
     
     net2 =  NeuralNet(
         layers= layer2,
@@ -127,8 +127,8 @@ def cascade_model(options):
         batch_iterator_train=Rotate_batch_Iterator(batch_size=256),
         update = updates.adadelta,
         on_epoch_finished=[
-            SaveWeights(net_weights, only_best=True, pickle=False),
-            SaveTrainingHistory(net_history),
+            SaveWeights(net_weights2, only_best=True, pickle=False),
+            SaveTrainingHistory(net_history2),
             EarlyStopping(patience=max_epochs_patience)],
         verbose= 11,
         max_epochs= num_epochs,
