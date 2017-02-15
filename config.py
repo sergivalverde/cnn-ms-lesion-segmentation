@@ -37,7 +37,7 @@ options['experiment'] = 'test_CNN4'
 # minimum threshold used to select candidate voxels for training. Note that images are
 # normalized to 0 mean 1 standard deviation before thresholding. So a value of t > 0.5 on FLAIR is
 # reasonable in most cases to extract all WM lesion candidates 
-options['min_th'] = 1
+options['min_th'] = 0.5
 
 # randomize training features before fitting the model.  
 options['randomize_train'] = True

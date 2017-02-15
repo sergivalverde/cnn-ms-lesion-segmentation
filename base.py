@@ -31,16 +31,16 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
     """
 
     # first iteration (CNN1):
-    print '---> cnn1 loading training data....'
+    print '---> cnn1 loading training data'
     X, Y = load_training_data(train_x_data, train_y_data, options)
-    print '---> cnn1 train_x ', X.shape
+    print '---> cnn1 train_x ', X.shape ,'\n'
     model[0].fit(X, Y)
 
     # second iteration (CNN2):
     # load training data based on CNN1 candidates
-    print scan, ': cnn2 loading training data.....'
+    print '---> cnn2 loading training data'
     X, Y = load_training_data(train_x_data, train_y_data, options,  model = model[0])
-    print scan, ': cnn2 train_x ', X.shape
+    print '---> cnn2 train_x ', X.shape, '\n'
     model[1].fit(X, Y)
 
     return model
@@ -63,7 +63,7 @@ def test_cascaded_model(model, test_x_data, options):
         - output_segmentation 
     """
 
-    print scan, '---> testing the model ....'
+    print scan, '---> testing the model'
 
     # first network 
     options['test_name'] = scan+ '_' + options['experiment'] + '_prob_0.nii.gz'
