@@ -1,0 +1,6 @@
+nibabel==2.1.0
+numpy==1.12.0
+scipy==0.18.1
+lasagne==0.1
+nolearn==0.6.0
+nolearn_utils==0.2.1

@@ -32,7 +32,7 @@ options['y_names'] = ['lesion_bin.nii.gz']
 # --------------------------------------------------
 
 # Select an experiment name to store net weights and segmentation masks
-options['experiment'] = 'test_CNN3'
+options['experiment'] = 'test_CNN4'
 
 # minimum threshold used to select candidate voxels for training. Note that images are
 # normalized to 0 mean 1 standard deviation before thresholding. So a value of t > 0.5 on FLAIR is

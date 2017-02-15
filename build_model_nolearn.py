@@ -92,7 +92,7 @@ def cascade_model(options):
     net1 =  NeuralNet(
         layers= layer1,
         objective_loss_function=objectives.categorical_crossentropy,
-        batch_iterator_train=Rotate_batch_Iterator(batch_size=256),
+        batch_iterator_train=Rotate_batch_Iterator(batch_size=128),
         update = updates.adadelta,
         on_epoch_finished=[
             SaveWeights(net_weights, only_best=True, pickle=False),
@@ -124,7 +124,7 @@ def cascade_model(options):
     net2 =  NeuralNet(
         layers= layer2,
         objective_loss_function=objectives.categorical_crossentropy,
-        batch_iterator_train=Rotate_batch_Iterator(batch_size=256),
+        batch_iterator_train=Rotate_batch_Iterator(batch_size=128),
         update = updates.adadelta,
         on_epoch_finished=[
             SaveWeights(net_weights2, only_best=True, pickle=False),
