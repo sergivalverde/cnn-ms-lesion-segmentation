@@ -63,18 +63,24 @@ def test_cascaded_model(model, test_x_data, options):
         - output_segmentation 
     """
 
-    print scan, '---> testing the model'
+    print ' ---> testing the model'
 
-    # first network 
-    options['test_name'] = scan+ '_' + options['experiment'] + '_prob_0.nii.gz'
+
+    # organize experiments
+    exp_folder = os.path.join(options['test_folder'], options['test_scan'], options['experiment'])
+    if not os.path.exists(exp_folder):
+        os.mkdir(exp_folder)
+
+    # first network
+    options['test_name'] = options['experiment'] + '_prob_0.nii.gz'
     t1 = test_scan(model[0], test_x_data, options, save_nifti= True)
 
     # second network 
-    options['test_name'] = scan+ '_' + options['experiment'] + '_prob_1.nii.gz'
+    options['test_name'] = options['experiment'] + '_prob_1.nii.gz'
     t2 = test_scan(model[1], test_x_data, options, save_nifti= True, candidate_mask = t1>0.8)
 
     # postprocess the output segmentation
-    options['test_name'] = scan+ '_' + options['experiment'] + '_out_CNN.nii.gz'
+    options['test_name'] = options['experiment'] + '_out_CNN.nii.gz'
     out_segmentation = post_process_segmentation(t2, options, save_nifti = True)
 
     return out_segmentation
@@ -323,6 +329,9 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
     flair_image = load_nii(flair_scans[0]).get_data()
     seg_image = np.zeros_like(flair_image)
 
+    # get test paths
+    test_folder, scan = os.path.split(flair_scans[0])
+    
     # compute lesion segmentation in batches of size options['batch_size'] 
     for batch, centers in load_test_patches(test_x_data, options['patch_size'], options['batch_size'], candidate_mask):
         y_pred = model.predict_proba(np.squeeze(batch))
@@ -331,7 +340,8 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
 
     if save_nifti:
         out_scan = nib.Nifti1Image(seg_image, np.eye(4))
-        out_scan.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
+        #out_scan.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
+        out_scan.to_filename(os.path.join(test_folder, options['experiment'], options['test_name']))
 
     return seg_image 
 
@@ -356,9 +366,6 @@ def select_voxels_from_previous_model(model, train_x_data, options):
 
     return seg_mask
 
-    for s in scans:
-        current_folder, scan = os.path.split(input_data[s][modalities[0]])
-    # organize experiments
 
 def post_process_segmentation(input_scan, options, save_nifti = True):
     """

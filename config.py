@@ -71,6 +71,9 @@ options['patience'] = 25
 # with less than 32GB of RAM
 options['batch_size'] = 50000
 
+# verbositiy of CNN messaging: 00 (none), 01 (low), 10 (medium), 11 (high)
+options['net_verbose'] = 11
+
 # post-processing binary threshold.
 options['t_bin'] = 0.8
 

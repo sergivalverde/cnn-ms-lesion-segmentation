@@ -6,8 +6,7 @@ This repository implements the method proposed in:
 ```
 Valverde, S., Cabezas, M., Roura, E., González-Villà, S., Pareto, D., Vilanova, J.C., Ramió-Torrentà, 
 L., Rovira, A., Oliver, A., Lladó, X. (2016). Improving automated multiple sclerosis lesion 
-segmentation with a cascaded 3D convolutional neural network approach. In revision.
-(coming soon)
+segmentation with a cascaded 3D convolutional neural network approach. In revision (coming soon)
 ```
 
 # Overview: 
@@ -39,9 +38,10 @@ nolearn_utils==0.2.1
 For easy installing, please use the `requeriments.txt` file included: 
 
 ```python
-pip install -r requirements.txt --user
+pip install -r requirements.txt 
 ```
 
+For speed-up the 3D convolutions, the method has been implemented using [Cuda DNN](http://lasagne.readthedocs.io/en/latest/modules/layers/dnn.html?highlight=cuda%20DNN) layers in `Lasagne`. 
 # How to use it: 
 
 Coming soon 

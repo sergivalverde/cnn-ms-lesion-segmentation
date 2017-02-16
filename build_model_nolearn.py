@@ -98,7 +98,7 @@ def cascade_model(options):
             SaveWeights(net_weights, only_best=True, pickle=False),
             SaveTrainingHistory(net_history),
             EarlyStopping(patience=max_epochs_patience)],
-        verbose= 11,
+        verbose= options['net_verbose'],
         max_epochs= num_epochs,
         train_split=TrainSplit(eval_size= train_split_perc),
     )
@@ -130,7 +130,7 @@ def cascade_model(options):
             SaveWeights(net_weights2, only_best=True, pickle=False),
             SaveTrainingHistory(net_history2),
             EarlyStopping(patience=max_epochs_patience)],
-        verbose= 11,
+        verbose= options['net_verbose'],
         max_epochs= num_epochs,
         train_split=TrainSplit(eval_size= train_split_perc),
     )
