@@ -5,7 +5,8 @@ This repository implements the method proposed in:
 
 ```
 Valverde, S., Cabezas, M., Roura, E., González-Villà, S., Pareto, D., Vilanova, J.-C., Ramió-Torrentà, Ll., 
-Rovira, À., Oliver, A., Lladó, X., 2017. Improving automated multiple sclerosis lesion segmentation with a cascaded 3D convolutional neural network approach.
+Rovira, À., Oliver, A., Lladó, X., 2017. Improving automated multiple sclerosis lesion 
+segmentation with a cascaded 3D convolutional neural network approach.
 ``` 
 
 # Overview: 
@@ -48,7 +49,7 @@ The main funtionality of the method can be tested using this [notebook](https://
 
 # Citing this work:
 
-The method is currently in revision, but an electronic preprint is available from [Arxiv](http://arxiv.org/abs/1702.04869). Until the final paper is not online , please cite this paper as:
+The paper explaining the method is currently in revision, but an electronic preprint is available from [Arxiv](http://arxiv.org/abs/1702.04869). Until the final paper is not published , please cite this work as:
 
 ```
 @article{Valverde2017,
@@ -59,6 +60,5 @@ eprint = {1702.04869},
 month = {feb},
 title = {{Improving automated multiple sclerosis lesion segmentation with a cascaded 3D convolutional neural network approach}},
 url = {http://arxiv.org/abs/1702.04869},
-year = {2017}
-}
+year = {2017}}
 ```
