@@ -4,10 +4,9 @@
 This repository implements the method proposed in: 
 
 ```
-Valverde, S., Cabezas, M., Roura, E., González-Villà, S., Pareto, D., Vilanova, J.C., Ramió-Torrentà, 
-L., Rovira, A., Oliver, A., Lladó, X. (2016). Improving automated multiple sclerosis lesion 
-segmentation with a cascaded 3D convolutional neural network approach. In revision (coming soon)
-```
+Valverde, S., Cabezas, M., Roura, E., González-Villà, S., Pareto, D., Vilanova, J.-C., Ramió-Torrentà, Ll., 
+Rovira, À., Oliver, A., Lladó, X., 2017. Improving automated multiple sclerosis lesion segmentation with a cascaded 3D convolutional neural network approach.
+``` 
 
 # Overview: 
 
@@ -47,3 +46,19 @@ For speed-up the 3D convolutions, the method has been implemented using [Cuda DN
 
 The main funtionality of the method can be tested using this [notebook](https://github.com/sergivalverde/cnn-ms-lesion-segmentation/blob/master/example_1.ipynb). For leave-one-out experiments, the custom [script](https://github.com/sergivalverde/cnn-ms-lesion-segmentation/blob/master/train_leave_one_out.py) used in our experiments can be also used. More complex examples and database related noteboks  (MICCAI2008, MICCAI2016) are coming soon. 
 
+# Citing this work:
+
+The method is currently in revision, but an electronic preprint is available from [Arxiv](http://arxiv.org/abs/1702.04869). Until the final paper is not online , please cite this paper as:
+
+```
+@article{Valverde2017,
+archivePrefix = {arXiv},
+arxivId = {1702.04869},
+author = {Valverde, Sergi and Cabezas, Mariano and Roura, Eloy and Gonz{\'{a}}lez-Vill{\`{a}}, Sandra and Pareto, Deborah and Vilanova, Joan-Carles and Rami{\'{o}}-Torrent{\`{a}}, LLu{\'{i}}s and Rovira, {\`{A}}lex and Oliver, Arnau and Llad{\'{o}}, Xavier},
+eprint = {1702.04869},
+month = {feb},
+title = {{Improving automated multiple sclerosis lesion segmentation with a cascaded 3D convolutional neural network approach}},
+url = {http://arxiv.org/abs/1702.04869},
+year = {2017}
+}
+```
