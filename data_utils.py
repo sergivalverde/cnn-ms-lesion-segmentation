@@ -356,10 +356,7 @@ def select_voxels_from_previous_model(model, train_x_data, options):
 
     return seg_mask
 
-    for s in scans:
-        current_folder, scan = os.path.split(input_data[s][modalities[0]])
-    # organize experiments
-
+ 
 def post_process_segmentation(input_scan, options, save_nifti = True):
     """
     Post-process the probabilistic segmentation using parameters t_bin and l_min
