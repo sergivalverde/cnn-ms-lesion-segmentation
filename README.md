@@ -26,7 +26,7 @@ The method has been evaluated on different MS lesion segmentation challenges suc
 
 The method works on top of [Lasagne](http://lasagne.readthedocs.io/en/latest/index.html) and [Theano](http://deeplearning.net/software/theano/). If the method is run using GPU, please be sure that the Theano ```cuda*``` backend has been installed [correctly](https://github.com/Theano/Theano/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29). In the case of CPU, be sure that the fast linear algebra [libraries](http://lasagne.readthedocs.io/en/latest/user/installation.html#numpy-scipy-blas) are also installed. 
 
-Once this requirements are met, the rest of python libraries may be easily installed using ```pip```: 
+Once these requirements are met, the rest of python libraries may be easily installed using ```pip```: 
 
 ```python
 pip install -r requirements.txt 
