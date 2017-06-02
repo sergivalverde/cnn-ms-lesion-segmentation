@@ -1,7 +1,7 @@
 import os
 import numpy as np
-from lasagne.layers import InputLayer, DenseLayer, DropoutLayer, FeaturePoolLayer, LocalResponseNormalization2DLayer, BatchNormLayer
-from lasagne.layers.dnn import Conv3DDNNLayer, MaxPool3DDNNLayer, Pool3DDNNLayer, batch_norm_dnn
+from lasagne.layers import InputLayer, DenseLayer, DropoutLayer, FeaturePoolLayer, BatchNormLayer
+from lasagne.layers import Conv3DLayer, MaxPool3DLayer, Pool3DLayer, batch_norm
 from lasagne import nonlinearities, objectives, updates
 from lasagne.nonlinearities import softmax, rectify
 from nolearn.lasagne import NeuralNet, BatchIterator, TrainSplit
@@ -76,10 +76,10 @@ def cascade_model(options):
     # --------------------------------------------------
     
     layer1 = InputLayer(name='in1', shape=(None, channels) + options['patch_size'])
-    layer1 = batch_norm_dnn(Conv3DDNNLayer(layer1, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
-    layer1 = Pool3DDNNLayer(layer1,  name='avgpool_1', mode='max', pool_size=2, stride=2)
-    layer1 = batch_norm_dnn(Conv3DDNNLayer(layer1, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
-    layer1 = Pool3DDNNLayer(layer1,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
+    layer1 = batch_norm(Conv3DLayer(layer1, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
+    layer1 = Pool3DLayer(layer1,  name='avgpool_1', mode='max', pool_size=2, stride=2)
+    layer1 = batch_norm(Conv3DLayer(layer1, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
+    layer1 = Pool3DLayer(layer1,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
     layer1 = DropoutLayer(layer1, name = 'l2drop', p=0.5)
     layer1 = DenseLayer(layer1, name='d_1', num_units = 256)
     layer1 = DenseLayer(layer1, name = 'out', num_units = 2, nonlinearity=nonlinearities.softmax)
@@ -108,10 +108,10 @@ def cascade_model(options):
     # --------------------------------------------------
     
     layer2 = InputLayer(name='in2', shape=(None, channels) + options['patch_size'])
-    layer2 = batch_norm_dnn(Conv3DDNNLayer(layer2, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
-    layer2 = Pool3DDNNLayer(layer2,  name='avgpool_1', mode='max', pool_size=2, stride=2)
-    layer2 = batch_norm_dnn(Conv3DDNNLayer(layer2, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
-    layer2 = Pool3DDNNLayer(layer2,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
+    layer2 = batch_norm(Conv3DLayer(layer2, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
+    layer2 = Pool3DLayer(layer2,  name='avgpool_1', mode='max', pool_size=2, stride=2)
+    layer2 = batch_norm(Conv3DLayer(layer2, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
+    layer2 = Pool3DLayer(layer2,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
     layer2 = DropoutLayer(layer2, name = 'l2drop', p=0.5)
     layer2 = DenseLayer(layer2, name='d_1', num_units = 256)
     layer2 = DenseLayer(layer2, name = 'out', num_units = 2, nonlinearity=nonlinearities.softmax)

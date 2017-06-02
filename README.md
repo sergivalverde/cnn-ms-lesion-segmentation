@@ -1,12 +1,12 @@
 
 # Multiple Sclerosis (MS) lesion segmentation of MRI images using a cascade of two 3D convolutional neural networks 
 
-This repository implements the method proposed in: 
+This repository implements the method proposed in the [NeuroImage publication](https://doi.org/10.1016/j.neuroimage.2017.04.034), but an electronic preprint is available from [Arxiv](http://arxiv.org/abs/1702.04869):
 
 ```
-Valverde, S., Cabezas, M., Roura, E., González-Villà, S., Pareto, D., Vilanova, J.-C., Ramió-Torrentà, Ll., 
-Rovira, À., Oliver, A., Lladó, X., 2017. Improving automated multiple sclerosis lesion 
-segmentation with a cascaded 3D convolutional neural network approach.
+Valverde, S., Cabezas, M., Roura, E., González-Villà, S., Pareto, D., Vilanova, J. C., … Lladó, X. (2017). 
+Improving automated multiple sclerosis lesion segmentation with a cascaded 3D convolutional neural network approach. 
+NeuroImage, 155, 159–168. https://doi.org/10.1016/j.neuroimage.2017.04.034
 ``` 
 
 # Overview: 
@@ -24,24 +24,14 @@ The method has been evaluated on different MS lesion segmentation challenges suc
 
 # Install:
 
-The method relies on some python libraries. All those libraries are available in [pip](https://pypi.python.org/pypi/pip):
+The method works on top of [Lasagne](http://lasagne.readthedocs.io/en/latest/index.html) and [Theano](http://deeplearning.net/software/theano/). If the method is run using GPU, please be sure that the Theano ```cuda*``` backend has been installed [correctly](https://github.com/Theano/Theano/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29). In the case of CPU, be sure that the fast linear algebra [libraries](http://lasagne.readthedocs.io/en/latest/user/installation.html#numpy-scipy-blas) are also installed. 
 
-```
-nibabel==2.1.0
-numpy==1.12.0
-scipy==0.18.1
-lasagne==0.1
-nolearn==0.6.0
-nolearn_utils==0.2.1
-```
-
-For easy installing, please use the `requeriments.txt` file included: 
+Once this requirements are met, the rest of python libraries may be easily installed using ```pip```: 
 
 ```python
 pip install -r requirements.txt 
 ```
 
-For speed-up the 3D convolutions, the method has been implemented using [Cuda DNN](http://lasagne.readthedocs.io/en/latest/modules/layers/dnn.html?highlight=cuda%20DNN) layers in `Lasagne`. 
 
 # How to use it: 
 
@@ -49,16 +39,19 @@ The main funtionality of the method can be tested using this [notebook](https://
 
 # Citing this work:
 
-The paper explaining the method is currently in revision, but an electronic preprint is available from [Arxiv](http://arxiv.org/abs/1702.04869). Until the final paper is not published , please cite this work as:
+Please cite this work as:
 
 ```
 @article{Valverde2017,
-archivePrefix = {arXiv},
-arxivId = {1702.04869},
-author = {Valverde, Sergi and Cabezas, Mariano and Roura, Eloy and Gonz{\'{a}}lez-Vill{\`{a}}, Sandra and Pareto, Deborah and Vilanova, Joan-Carles and Rami{\'{o}}-Torrent{\`{a}}, LLu{\'{i}}s and Rovira, {\`{A}}lex and Oliver, Arnau and Llad{\'{o}}, Xavier},
-eprint = {1702.04869},
-month = {feb},
+author = {Valverde, Sergi and Cabezas, Mariano and Roura, Eloy and Gonz{\'{a}}lez-Vill{\`{a}}, Sandra and Pareto, Deborah and Vilanova, Joan C. and Rami{\'{o}}-Torrent{\`{a}}, Llu{\'{i}}s and Rovira, {\`{A}}lex and Oliver, Arnau and Llad{\'{o}}, Xavier},
+doi = {10.1016/j.neuroimage.2017.04.034},
+issn = {10538119},
+journal = {NeuroImage},
+pages = {159--168},
 title = {{Improving automated multiple sclerosis lesion segmentation with a cascaded 3D convolutional neural network approach}},
-url = {http://arxiv.org/abs/1702.04869},
-year = {2017}}
+url = {http://www.sciencedirect.com/science/article/pii/S1053811917303270},
+volume = {155},
+year = {2017}
+}
+
 ```
