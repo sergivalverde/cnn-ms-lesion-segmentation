@@ -7,7 +7,8 @@ from lasagne.nonlinearities import softmax, rectify
 from nolearn.lasagne import NeuralNet, BatchIterator, TrainSplit
 from nolearn.lasagne.handlers import SaveWeights
 from nolearn_utils.hooks import SaveTrainingHistory, PlotTrainingHistory, EarlyStopping
-
+import warnings
+warnings.simplefilter("ignore")
 
 class Rotate_batch_Iterator(BatchIterator):
     """
@@ -134,6 +135,11 @@ def cascade_model(options):
         max_epochs= num_epochs,
         train_split=TrainSplit(eval_size= train_split_perc),
     )
-    
+
+    # upload weights if set
+    if options['load_weights'] == 'True':
+        print "    --> CNN, loading weights from", options['experiment'], 'configuration'
+        net1.load_params_from(net_weights)
+        net2.load_params_from(net_weights2)
     return [net1, net2]
 

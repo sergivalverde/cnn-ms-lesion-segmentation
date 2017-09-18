@@ -45,6 +45,7 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
 
     return model
 
+
 def test_cascaded_model(model, test_x_data, options):
     """
     Test the cascaded approach using a learned model 
@@ -63,7 +64,7 @@ def test_cascaded_model(model, test_x_data, options):
         - output_segmentation 
     """
 
-    print ' ---> testing the model'
+    print '    --> testing the model'
 
 
     # organize experiments
@@ -329,8 +330,6 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
     flair_image = load_nii(flair_scans[0]).get_data()
     seg_image = np.zeros_like(flair_image)
 
-    # get test paths
-    test_folder, scan = os.path.split(flair_scans[0])
     
     # compute lesion segmentation in batches of size options['batch_size'] 
     for batch, centers in load_test_patches(test_x_data, options['patch_size'], options['batch_size'], candidate_mask):
@@ -340,8 +339,8 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
 
     if save_nifti:
         out_scan = nib.Nifti1Image(seg_image, np.eye(4))
-        #out_scan.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
-        out_scan.to_filename(os.path.join(test_folder, options['experiment'], options['test_name']))
+        out_scan.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
+        #out_scan.to_filename(os.path.join(test_folder, scan, options['experiment'], options['test_name']))
 
     return seg_image 
 
@@ -349,7 +348,6 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
 def select_voxels_from_previous_model(model, train_x_data, options):
     """
     Select training voxels from image segmentation masks 
-
     
     """
 
