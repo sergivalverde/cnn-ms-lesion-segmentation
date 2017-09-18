@@ -58,11 +58,11 @@ def cascade_model(options):
     """
 
     # model options
-    channels = len(options['modalities'])
+    num_channels = len(options['modalities'])
     train_split_perc = options['train_split']
     num_epochs = options['max_epochs']
     max_epochs_patience = options['patience']
-
+    ps = options['patch_size'][0]
     
     # save model to disk to re-use it. Create an experiment folder
     # organize experiment 
