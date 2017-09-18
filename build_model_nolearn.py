@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from lasagne.layers import InputLayer, DenseLayer, DropoutLayer, FeaturePoolLayer, BatchNormLayer
+from lasagne.layers import InputLayer, DenseLayer, DropoutLayer, FeaturePoolLayer, BatchNormLayer, prelu
 from lasagne.layers import Conv3DLayer, MaxPool3DLayer, Pool3DLayer, batch_norm
 from lasagne import nonlinearities, objectives, updates
 from lasagne.nonlinearities import softmax, rectify
@@ -76,15 +76,22 @@ def cascade_model(options):
     # first model
     # --------------------------------------------------
     
-    layer1 = InputLayer(name='in1', shape=(None, channels) + options['patch_size'])
-    layer1 = batch_norm(Conv3DLayer(layer1, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
-    layer1 = Pool3DLayer(layer1,  name='avgpool_1', mode='max', pool_size=2, stride=2)
-    layer1 = batch_norm(Conv3DLayer(layer1, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
-    layer1 = Pool3DLayer(layer1,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
-    layer1 = DropoutLayer(layer1, name = 'l2drop', p=0.5)
-    layer1 = DenseLayer(layer1, name='d_1', num_units = 256)
-    layer1 = DenseLayer(layer1, name = 'out', num_units = 2, nonlinearity=nonlinearities.softmax)
 
+    layer1 = InputLayer(name='in', shape=(None, num_channels, ps, ps, ps))
+    layer1 = prelu(batch_norm(Conv3DLayer(layer1, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1'), name='p_relu1')
+    layer1 = prelu(batch_norm(Conv3DLayer(layer1, name='conv1_2', num_filters=32, filter_size=3, pad='same'), name = 'BN2'), name='p_relu2')
+    layer1 = Pool3DLayer(layer1,  name='avgpool_1', mode='max', pool_size=2, stride=2)
+    layer1 = prelu(batch_norm(Conv3DLayer(layer1, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN3'), name = 'p_relu3')
+    layer1 = prelu(batch_norm(Conv3DLayer(layer1, name='conv2_2', num_filters=64, filter_size=3, pad='same'), name = 'BN4'), name = 'p_relu4')
+    layer1 = Pool3DLayer(layer1,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
+    layer1 = DropoutLayer(layer1, name = 'l1drop', p=0.5)
+    layer1 = prelu(DenseLayer(layer1, name='d_1', num_units = 256), name = 'p_relu_fn1')
+    layer1 = DropoutLayer(layer1, name = 'l2drop', p=0.5)
+    layer1 = prelu(DenseLayer(layer1, name='d_2', num_units = 128), name = 'p_relu_fn2')
+    layer1 = DropoutLayer(layer1, name = 'l3drop', p=0.5)
+    layer1 = prelu(DenseLayer(layer1, name='d_3', num_units = 64), name = 'p_relu_fn3')
+    layer1 = DenseLayer(layer1, name = 'out', num_units = 2, nonlinearity=nonlinearities.softmax)
+   
     # save weights 
     net_model = 'model_1'
     net_weights = os.path.join(options['weight_paths'], options['experiment'], 'nets',  net_model + '.pkl' )
@@ -107,14 +114,20 @@ def cascade_model(options):
     # --------------------------------------------------
     # second model
     # --------------------------------------------------
-    
-    layer2 = InputLayer(name='in2', shape=(None, channels) + options['patch_size'])
-    layer2 = batch_norm(Conv3DLayer(layer2, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1')
+
+    layer2 = InputLayer(name='in', shape=(None, num_channels, ps, ps, ps))
+    layer2 = prelu(batch_norm(Conv3DLayer(layer2, name='conv1_1', num_filters=32, filter_size=3, pad='same'), name = 'BN1'), name='p_relu1')
+    layer2 = prelu(batch_norm(Conv3DLayer(layer2, name='conv1_2', num_filters=32, filter_size=3, pad='same'), name = 'BN2'), name='p_relu2')
     layer2 = Pool3DLayer(layer2,  name='avgpool_1', mode='max', pool_size=2, stride=2)
-    layer2 = batch_norm(Conv3DLayer(layer2, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN2')
+    layer2 = prelu(batch_norm(Conv3DLayer(layer2, name='conv2_1', num_filters=64, filter_size=3, pad='same'), name = 'BN3'), name = 'p_relu3')
+    layer2 = prelu(batch_norm(Conv3DLayer(layer2, name='conv2_2', num_filters=64, filter_size=3, pad='same'), name = 'BN4'), name = 'p_relu4')
     layer2 = Pool3DLayer(layer2,  name='avgpoo2_1', mode='max', pool_size=2, stride=2)
+    layer2 = DropoutLayer(layer2, name = 'l1drop', p=0.5)
+    layer2 = prelu(DenseLayer(layer2, name='d_1', num_units = 256), name = 'p_relu_fn1')
     layer2 = DropoutLayer(layer2, name = 'l2drop', p=0.5)
-    layer2 = DenseLayer(layer2, name='d_1', num_units = 256)
+    layer2 = prelu(DenseLayer(layer2, name='d_2', num_units = 128), name = 'p_relu_fn2')
+    layer2 = DropoutLayer(layer2, name = 'l3drop', p=0.5)
+    layer2 = prelu(DenseLayer(layer2, name='d_3', num_units = 64), name = 'p_relu_fn3')
     layer2 = DenseLayer(layer2, name = 'out', num_units = 2, nonlinearity=nonlinearities.softmax)
 
     # save weights 
@@ -143,3 +156,41 @@ def cascade_model(options):
         net2.load_params_from(net_weights2)
     return [net1, net2]
 
+def define_training_layers(model, num_layers = 1):
+    """
+    Define the number of layers to train and freeze the rest 
+    
+    inputs:
+    - model: Neural network model [net1, net2]
+    - number of layers to retrain 
+
+    outputs 
+    - updated model 
+    """
+    
+    # do not train convolutionals
+    for n in range(2):
+        print "--> net ", n, "freezing the first  ", 11 - num_layers
+        
+        model[n].initialize()
+        model[n].layers_['conv1_1'].params[model[n].layers_['conv1_1'].W].remove("trainable")
+        model[n].layers_['conv1_2'].params[model[n].layers_['conv1_2'].W].remove("trainable")
+        model[n].layers_['conv2_1'].params[model[n].layers_['conv2_1'].W].remove("trainable")
+        model[n].layers_['conv2_2'].params[model[n].layers_['conv2_2'].W].remove("trainable")
+        model[n].layers_['p_relu1'].params[model[n].layers_['p_relu1'].alpha].remove("trainable")
+        model[n].layers_['p_relu2'].params[model[n].layers_['p_relu2'].alpha].remove("trainable")
+        model[n].layers_['p_relu3'].params[model[n].layers_['p_relu3'].alpha].remove("trainable")
+        model[n].layers_['p_relu4'].params[model[n].layers_['p_relu4'].alpha].remove("trainable")
+
+        if num_layers == 1:
+            model[n].layers_['d_1'].params[model[n].layers_['d_1'].W].remove("trainable")
+            model[n].layers_['p_relu_fn1'].params[model[n].layers_['p_relu_fn1'].alpha].remove("trainable")
+            model[n].layers_['d_2'].params[model[n].layers_['d_2'].W].remove("trainable")
+            model[n].layers_['p_relu_fn2'].params[model[n].layers_['p_relu_fn2'].alpha].remove("trainable")
+        if num_layers == 2:
+            model[n].layers_['d_1'].params[model[n].layers_['d_1'].W].remove("trainable")
+            model[n].layers_['p_relu_fn1'].params[model[n].layers_['p_relu_fn1'].alpha].remove("trainable")
+        if num_layers == 3:
+            pass
+
+    return model

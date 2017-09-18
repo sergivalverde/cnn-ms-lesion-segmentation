@@ -175,12 +175,11 @@ def select_training_voxels(input_masks, threshold=2, datatype=np.float32):
     rois = [image > threshold for image in images_norm]
     return rois
 
-
 def load_train_patches(x_data, y_data, selected_voxels, patch_size, random_state = 42, datatype=np.float32):
     """
     Load train patches with size equal to patch_size, given a list of selected voxels
-
     Inputs: 
+
        - x_data: list containing all subject image paths for a single modality
        - y_data: list containing all subject image paths for the labels
        - selected_voxels: list where each element contains the subject binary mask for selected voxels [len(x), len(y), len(z)]
@@ -202,8 +201,8 @@ def load_train_patches(x_data, y_data, selected_voxels, patch_size, random_state
     # Get all the x,y,z coordinates for each image
     lesion_centers = [get_mask_voxels(mask) for mask in lesion_masks]
     nolesion_centers = [get_mask_voxels(mask) for mask in nolesion_masks]
-   
-    # load all positive samples (lesion voxels) and the same number of random negatives samples
+    
+   # load all positive samples (lesion voxels) and the same number of random negatives samples
     np.random.seed(random_state) 
 
     x_pos_patches = [np.array(get_patches(image, centers, patch_size)) for image, centers in zip(images_norm, lesion_centers)]
@@ -219,7 +218,6 @@ def load_train_patches(x_data, y_data, selected_voxels, patch_size, random_state
     Y = np.concatenate([np.concatenate([y1, y2]) for y1, y2 in zip(y_pos_patches, y_neg_patches)], axis= 0)
     
     return X, Y
-
 
 def load_test_patches(test_x_data, patch_size, batch_size, voxel_candidates = None, datatype=np.float32):
     """
@@ -340,7 +338,6 @@ def select_voxels_from_previous_model(model, train_x_data, options):
     """
     Select training voxels from image segmentation masks 
 
-    
     """
 
     # get_scan names and number of modalities used 

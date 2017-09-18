@@ -14,7 +14,7 @@ options = {}
 # path to training image folder. In all our experiments, training images were inside
 # a folder and image modalities were consistent across training images. In the case of
 # leave-one-out experiments, the same folder is used
-options['train_folder'] = '/mnt/DATA/w/CNN/images/VH_all'
+options['train_folder'] = '/mnt/DATA/w/CNN/images/VH_tests'
 options['test_folder'] = '/mnt/DATA/w/CNN/images/VH_all' 
 
 # image modalities used (T1, FLAIR, PD, T2, ...) 

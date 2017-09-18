@@ -24,13 +24,11 @@
 #  Sergi Valverde 2017
 # ------------------------------------------------------------------------------------------------------------
 
-
 import os
 from collections import OrderedDict
 from base import *
 from build_model_nolearn import cascade_model
 from config import *
-
 
 list_of_scans = os.listdir(options['train_folder'])
 list_of_scans.sort()
@@ -77,7 +75,6 @@ for scan in list_of_scans:
     # train the cascaded model
     # --------------------------------------------------
     model = train_cascaded_model(model, train_x_data, train_y_data,  options)
-
 
     # --------------------------------------------------
     # Testing the cascaded model 
