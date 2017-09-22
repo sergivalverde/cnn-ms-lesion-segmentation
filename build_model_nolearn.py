@@ -149,48 +149,74 @@ def cascade_model(options):
         train_split=TrainSplit(eval_size= train_split_perc),
     )
 
-    # upload weights if set
-    if options['load_weights'] == 'True':
+    if options['full_train'] is False:
+
+        # load default weights
+        current_folder = os.path.dirname(os.path.abspath(__file__))
+        net1_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_1.pkl')
+        net1.load_params_from(net1_w_def)
+        net2_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_2.pkl')
+        net2.load_params_from(net2_w_def)
+
+    if options['load_weights'] is True: 
         print "    --> CNN, loading weights from", options['experiment'], 'configuration'
         net1.load_params_from(net_weights)
         net2.load_params_from(net_weights2)
+
+        
+
     return [net1, net2]
 
-def define_training_layers(model, num_layers = 1):
+
+def define_training_layers(net, num_layers = None, number_of_samples = None):
     """
     Define the number of layers to train and freeze the rest 
     
     inputs:
-    - model: Neural network model [net1, net2]
+    - model: Neural network object net1 or net2
     - number of layers to retrain 
+    - nunber of training samples 
 
     outputs 
     - updated model 
     """
     
-    # do not train convolutionals
-    for n in range(2):
-        print "--> net ", n, "freezing the first  ", 11 - num_layers
-        
-        model[n].initialize()
-        model[n].layers_['conv1_1'].params[model[n].layers_['conv1_1'].W].remove("trainable")
-        model[n].layers_['conv1_2'].params[model[n].layers_['conv1_2'].W].remove("trainable")
-        model[n].layers_['conv2_1'].params[model[n].layers_['conv2_1'].W].remove("trainable")
-        model[n].layers_['conv2_2'].params[model[n].layers_['conv2_2'].W].remove("trainable")
-        model[n].layers_['p_relu1'].params[model[n].layers_['p_relu1'].alpha].remove("trainable")
-        model[n].layers_['p_relu2'].params[model[n].layers_['p_relu2'].alpha].remove("trainable")
-        model[n].layers_['p_relu3'].params[model[n].layers_['p_relu3'].alpha].remove("trainable")
-        model[n].layers_['p_relu4'].params[model[n].layers_['p_relu4'].alpha].remove("trainable")
+    print "--> net ", n, "freezing the first  ", 11 - num_layers
 
-        if num_layers == 1:
-            model[n].layers_['d_1'].params[model[n].layers_['d_1'].W].remove("trainable")
-            model[n].layers_['p_relu_fn1'].params[model[n].layers_['p_relu_fn1'].alpha].remove("trainable")
-            model[n].layers_['d_2'].params[model[n].layers_['d_2'].W].remove("trainable")
-            model[n].layers_['p_relu_fn2'].params[model[n].layers_['p_relu_fn2'].alpha].remove("trainable")
-        if num_layers == 2:
-            model[n].layers_['d_1'].params[model[n].layers_['d_1'].W].remove("trainable")
-            model[n].layers_['p_relu_fn1'].params[model[n].layers_['p_relu_fn1'].alpha].remove("trainable")
-        if num_layers == 3:
-            pass
+    # use the nunber of samples to choose the number of layers to retrain
+    if number_of_samples is not None:
+        if number_of_samples < 10000:
+            num_layers = 1
+        else if number_of_samples < 50000:
+            num_layers = 2
+        else:
+            num_layers = 3
 
-    return model
+    # check num_layers is set. set default value instead 
+    if (num_layers == 'None') and (number_of_samples is None):
+        num_layers = 1
+    
+
+    # freeze parameters
+    net.initialize()
+    net.layers_['conv1_1'].params[net.layers_['conv1_1'].W].remove("trainable")
+    net.layers_['conv1_2'].params[net.layers_['conv1_2'].W].remove("trainable")
+    net.layers_['conv2_1'].params[net.layers_['conv2_1'].W].remove("trainable")
+    net.layers_['conv2_2'].params[net.layers_['conv2_2'].W].remove("trainable")
+    net.layers_['p_relu1'].params[net.layers_['p_relu1'].alpha].remove("trainable")
+    net.layers_['p_relu2'].params[net.layers_['p_relu2'].alpha].remove("trainable")
+    net.layers_['p_relu3'].params[net.layers_['p_relu3'].alpha].remove("trainable")
+    net.layers_['p_relu4'].params[net.layers_['p_relu4'].alpha].remove("trainable")
+
+    if num_layers == 1:
+        net.layers_['d_1'].params[net.layers_['d_1'].W].remove("trainable")
+        net.layers_['p_relu_fn1'].params[net.layers_['p_relu_fn1'].alpha].remove("trainable")
+        net.layers_['d_2'].params[net.layers_['d_2'].W].remove("trainable")
+        net.layers_['p_relu_fn2'].params[net.layers_['p_relu_fn2'].alpha].remove("trainable")
+    if num_layers == 2:
+        net.layers_['d_1'].params[net.layers_['d_1'].W].remove("trainable")
+        net.layers_['p_relu_fn1'].params[net.layers_['p_relu_fn1'].alpha].remove("trainable")
+    if num_layers == 3:
+        pass
+
+    return net

@@ -7,6 +7,7 @@ from math import floor
 from operator import itemgetter
 import cPickle
 import copy
+from build_model_nolearn import define_training_layers
 from operator import add
 
 def train_cascaded_model(model, train_x_data, train_y_data, options):
@@ -34,6 +35,13 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
     print '---> cnn1 loading training data'
     X, Y = load_training_data(train_x_data, train_y_data, options)
     print '---> cnn1 train_x ', X.shape ,'\n'
+
+    # define training layers
+    if options['full_train'] is False:
+        model[0] = define_training_layers(net = model[0],
+                                          num_layers = options['num_layers'],
+                                          number_of_samples = X.shape[0])
+
     model[0].fit(X, Y)
 
     # second iteration (CNN2):
@@ -41,6 +49,13 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
     print '---> cnn2 loading training data'
     X, Y = load_training_data(train_x_data, train_y_data, options,  model = model[0])
     print '---> cnn2 train_x ', X.shape, '\n'
+
+    # define training layers
+    if options['full_train'] is False:
+        model[1] = define_training_layers(net = model[1],
+                                          num_layers = options['num_layers'],
+                                          number_of_samples = X.shape[0])
+
     model[1].fit(X, Y)
 
     return model

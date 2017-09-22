@@ -47,6 +47,11 @@ options['randomize_train'] = True
 options['fully_convolutional'] = False
 
 
+# select full training or re-tretraining FC layers. If 'full_train' is set to 'False', then the number
+# of layers to retrain can be set. If not selected, this number is set automatically according to the number of
+# training samples 
+options['full_train'] = True
+options['mum_layers'] = None 
 
 # --------------------------------------------------
 # model parameters
