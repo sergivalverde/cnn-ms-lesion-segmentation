@@ -10,6 +10,7 @@ import copy
 from build_model_nolearn import define_training_layers
 from operator import add
 
+
 def train_cascaded_model(model, train_x_data, train_y_data, options):
     """
     Train the model using a cascade of two CNN
@@ -31,32 +32,69 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
         - trained model: list containing the two cascaded CNN models after training 
     """
 
-    # first iteration (CNN1):
-    print '---> cnn1 loading training data'
-    X, Y = load_training_data(train_x_data, train_y_data, options)
-    print '---> cnn1 train_x ', X.shape ,'\n'
+    # ----------
+    # CNN1
+    # ----------
 
-    # define training layers
+    max_epochs = options['max_epochs']
+    
+    print '    --> cnn1 loading training data'
+    X, Y = load_training_data(train_x_data, train_y_data, options)
+    print '    --> cnn1 train_x ', X.shape ,'\n'
+
+    # If a full train is not selected, all CONV layers are freezed and negatives samples
+    # are resampled to increase the number of negative samples. Resampling is set to 10 by
+    # default
     if options['full_train'] is False:
         model[0] = define_training_layers(net = model[0],
                                           num_layers = options['num_layers'],
                                           number_of_samples = X.shape[0])
+        
+        num_iterations = options['max_epochs'] / 10
+        model[0].max_epochs =  10
+        for it in range(num_iterations):
+            model[0].fit(X, Y)
 
-    model[0].fit(X, Y)
+            # if early stopping happens exit training  
+            last_valid_epoch = model[0].on_epoch_finished[2].best_valid_epoch 
+            if (last_valid_epoch + options['patience']) < ((it +1)*10):
+                break
+                
+            X, Y = load_training_data(train_x_data, train_y_data, options)
+            
+    else:
+        model[0].fit(X, Y)
 
-    # second iteration (CNN2):
-    # load training data based on CNN1 candidates
-    print '---> cnn2 loading training data'
+    # ----------
+    # CNN2
+    # ----------
+
+    print '    --> cnn2 loading training data'
     X, Y = load_training_data(train_x_data, train_y_data, options,  model = model[0])
-    print '---> cnn2 train_x ', X.shape, '\n'
+    print '    --> cnn2 train_x ', X.shape, '\n'
 
     # define training layers
     if options['full_train'] is False:
         model[1] = define_training_layers(net = model[1],
                                           num_layers = options['num_layers'],
                                           number_of_samples = X.shape[0])
+        
+        num_iterations = options['max_epochs'] / 10
+        model[1].max_epochs = 10
+        for it in range(num_iterations):
+            model[1].fit(X, Y)
 
-    model[1].fit(X, Y)
+            # if early stopping happens exit training  
+            last_valid_epoch = model[1].on_epoch_finished[2].best_valid_epoch
+            if (last_valid_epoch + patience) < ((it +1)*10):
+                break
+            
+            X, Y = load_training_data(train_x_data, train_y_data, options, model = model[0])
+    else:
+        model[1].fit(X, Y)
+    
+    model[0].max_epochs = options['max_epochs']
+    model[1].max_epochs = options['max_epochs']
 
     return model
 
