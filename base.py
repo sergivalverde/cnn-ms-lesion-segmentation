@@ -86,7 +86,7 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
 
             # if early stopping happens exit training  
             last_valid_epoch = model[1].on_epoch_finished[2].best_valid_epoch
-            if (last_valid_epoch + patience) < ((it +1)*10):
+            if (last_valid_epoch + options['patience']) < ((it +1)*10):
                 break
             
             X, Y = load_training_data(train_x_data, train_y_data, options, model = model[0])
