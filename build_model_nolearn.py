@@ -153,15 +153,24 @@ def cascade_model(options):
 
         # load default weights
         print "    --> Loading weights from the default configuration"
-        
-        current_folder = os.path.dirname(os.path.abspath(__file__))
+
+        if options['pretrained_model'] == 'baseline': 
+            current_folder = os.path.dirname(os.path.abspath(__file__))
+            net1_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_1.pkl')
+            net2_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_2.pkl')
+        else:
+            pretrained_model = os.path.join(options['weight_paths'], options['pretrained_model'],'nets')
+            model = os.path.join(options['weight_paths'], options['experiment'])
+            os.system('cp -r ' + pretrained_model  + ' ' + model)
+            net1_w_def = os.path.join(model, 'nets', 'model_1.pkl')
+            net2_w_def = os.path.join(model, 'nets', 'model_2.pkl')
+       
         net1.verbose = 0
-        net1_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_1.pkl')
         net1.load_params_from(net1_w_def)
         net2.verbose = 0
-        net2_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_2.pkl')
         net2.load_params_from(net2_w_def)
         
+
     if options['load_weights'] is True:
         print "    --> CNN, loading weights from", options['experiment'], 'configuration'
         net1.verbose = 0
@@ -191,9 +200,9 @@ def define_training_layers(net, num_layers = None, number_of_samples = None):
 
     # use the nunber of samples to choose the number of layers to retrain
     if number_of_samples is not None:
-        if number_of_samples < 40000:
+        if number_of_samples < 10000:
             num_layers = 1
-        elif number_of_samples < 150000:
+        elif number_of_samples < 100000:
             num_layers = 2
         else:
             num_layers = 3
@@ -203,7 +212,7 @@ def define_training_layers(net, num_layers = None, number_of_samples = None):
         num_layers = 1
     
 
-    print "    --> freezing the first", 11 - num_layers, 'layers'
+    print "--> freezing the first", 11 - num_layers, 'layers'
     # freeze parameters
     net.initialize()
     net.layers_['conv1_1'].params[net.layers_['conv1_1'].W].remove("trainable")
@@ -225,5 +234,9 @@ def define_training_layers(net, num_layers = None, number_of_samples = None):
         net.layers_['p_relu_fn1'].params[net.layers_['p_relu_fn1'].alpha].remove("trainable")
     if num_layers == 3:
         pass
+
+    #if num_layers > 0:
+    #     net.layers_['d_1'].params[net.layers_['d_1'].W].remove("trainable")
+    #     net.layers_['p_relu_fn1'].params[net.layers_['p_relu_fn1'].alpha].remove("trainable")
 
     return net

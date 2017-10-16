@@ -49,10 +49,11 @@ options['fully_convolutional'] = False
 
 # select full training or re-tretraining FC layers. If 'full_train' is set to 'False', then the number
 # of layers to retrain can be set. If not selected, this number is set automatically according to the number of
-# training samples 
+# training samples. The network can be re-trained either from a predefined 'baseline' model or pretrained model
+# available in the nets folder.
 options['full_train'] = True
 options['mum_layers'] = None 
-
+options['pretrained_model'] = 'baseline'  # or an exisiting model in nets/ i.e options['pretrained_model] = 'test_CNN_nii'
 # --------------------------------------------------
 # model parameters
 # --------------------------------------------------

@@ -134,8 +134,15 @@ def test_cascaded_model(model, test_x_data, options):
     t2 = test_scan(model[1], test_x_data, options, save_nifti= True, candidate_mask = t1>0.8)
 
     # postprocess the output segmentation
+    # obtain the orientation from the first scan used for testing
+    scans = test_x_data.keys()
+    flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
+    flair_image = load_nii(flair_scans[0])
     options['test_name'] = options['experiment'] + '_out_CNN.nii.gz'
-    out_segmentation = post_process_segmentation(t2, options, save_nifti = True)
+    out_segmentation = post_process_segmentation(t2,
+                                                 options,
+                                                 save_nifti = True,
+                                                 orientation = flair_image.affine)
 
     return out_segmentation
 
@@ -380,8 +387,8 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
     # get_scan name and create an empty nifti image to store segmentation
     scans = test_x_data.keys()
     flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
-    flair_image = load_nii(flair_scans[0]).get_data()
-    seg_image = np.zeros_like(flair_image)
+    flair_image = load_nii(flair_scans[0])
+    seg_image = np.zeros_like(flair_image.get_data())
 
     
     # compute lesion segmentation in batches of size options['batch_size'] 
@@ -391,7 +398,7 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
         seg_image[x, y, z] = y_pred[:, 1]
 
     if save_nifti:
-        out_scan = nib.Nifti1Image(seg_image, np.eye(4))
+        out_scan = nib.Nifti1Image(seg_image, affine=flair_image.affine)
         out_scan.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
         #out_scan.to_filename(os.path.join(test_folder, scan, options['experiment'], options['test_name']))
 
@@ -418,7 +425,7 @@ def select_voxels_from_previous_model(model, train_x_data, options):
     return seg_mask
 
 
-def post_process_segmentation(input_scan, options, save_nifti = True):
+def post_process_segmentation(input_scan, options, save_nifti = True, orientation = np.eye(4)):
     """
     Post-process the probabilistic segmentation using parameters t_bin and l_min
     t_bin: threshold to binarize the output segmentations 
@@ -455,7 +462,7 @@ def post_process_segmentation(input_scan, options, save_nifti = True):
 
     #save the output segmentation as Nifti1Image
     if save_nifti:
-        nifti_out = nib.Nifti1Image(output_scan, np.eye(4))
+        nifti_out = nib.Nifti1Image(output_scan, affine = orientation)
         nifti_out.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
 
     return output_scan
