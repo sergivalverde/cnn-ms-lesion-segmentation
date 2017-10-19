@@ -38,9 +38,9 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
 
     max_epochs = options['max_epochs']
     
-    print '    --> cnn1 loading training data'
+    print "> CNN:, loading training data for first model"
     X, Y = load_training_data(train_x_data, train_y_data, options)
-    print '    --> cnn1 train_x ', X.shape ,'\n'
+    print '> CNN: train_x ', X.shape
 
     # If a full train is not selected, all CONV layers are freezed and negatives samples
     # are resampled to increase the number of negative samples. Resampling is set to 10 by
@@ -69,9 +69,9 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
     # CNN2
     # ----------
 
-    print '    --> cnn2 loading training data'
+    print '> CNN: loading training data for the second model'
     X, Y = load_training_data(train_x_data, train_y_data, options,  model = model[0])
-    print '    --> cnn2 train_x ', X.shape, '\n'
+    print '> CNN: train_x ', X.shape
 
     # define training layers
     if options['full_train'] is False:
@@ -117,8 +117,7 @@ def test_cascaded_model(model, test_x_data, options):
         - output_segmentation 
     """
 
-    print '    --> testing the model'
-
+    # print '> CNN: testing the model'
 
     # organize experiments
     exp_folder = os.path.join(options['test_folder'], options['test_scan'], options['experiment'])

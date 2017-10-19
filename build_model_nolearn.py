@@ -1,4 +1,6 @@
 import os
+import sys
+import signal
 import numpy as np
 from lasagne.layers import InputLayer, DenseLayer, DropoutLayer, FeaturePoolLayer, BatchNormLayer, prelu
 from lasagne.layers import Conv3DLayer, MaxPool3DLayer, Pool3DLayer, batch_norm
@@ -151,28 +153,36 @@ def cascade_model(options):
 
     if options['full_train'] is False:
 
-        # load default weights
-        print "    --> Loading weights from the default configuration"
-
-        if options['pretrained_model'] == 'baseline': 
+        if options['pretrained_model'] == 'baseline':
+            # load default weights
+            print "> CNN: Loading pretrained weights from the default configuration"
             current_folder = os.path.dirname(os.path.abspath(__file__))
             net1_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_1.pkl')
             net2_w_def = os.path.join(current_folder, 'defaults', 'baseline', 'nets', 'model_2.pkl')
         else:
+            # load default weights
+            print "> CNN: Loading pretrained weights from the", options['pretrained_model'], "configuration"
             pretrained_model = os.path.join(options['weight_paths'], options['pretrained_model'],'nets')
             model = os.path.join(options['weight_paths'], options['experiment'])
             os.system('cp -r ' + pretrained_model  + ' ' + model)
             net1_w_def = os.path.join(model, 'nets', 'model_1.pkl')
             net2_w_def = os.path.join(model, 'nets', 'model_2.pkl')
-       
-        net1.verbose = 0
-        net1.load_params_from(net1_w_def)
-        net2.verbose = 0
-        net2.load_params_from(net2_w_def)
-        
+
+        try:
+            net1.verbose = 0
+            net1.load_params_from(net1_w_def)
+            net2.verbose = 0
+            net2.load_params_from(net2_w_def)
+        except:
+            print "> ERROR: The model", options['experiment'], 'selected does not contain a valid network model'
+            sys.stdout.flush()
+            time.sleep(1)
+            os.kill(os.getpid(), signal.SIGTERM)
+
 
     if options['load_weights'] is True:
-        print "    --> CNN, loading weights from", options['experiment'], 'configuration'
+        print "> CNN: loading weights from", options['experiment'], 'configuration'
+        # sys.stdout.flush()
         net1.verbose = 0
         net2.verbose = 0
         net1.load_params_from(net_weights)
@@ -213,6 +223,7 @@ def define_training_layers(net, num_layers = None, number_of_samples = None):
     
 
     print "--> freezing the first", 11 - num_layers, 'layers'
+    sys.stdout.flush()
     # freeze parameters
     net.initialize()
     net.layers_['conv1_1'].params[net.layers_['conv1_1'].W].remove("trainable")
