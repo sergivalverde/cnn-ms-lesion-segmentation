@@ -327,8 +327,8 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
     # get_scan name and create an empty nifti image to store segmentation
     scans = test_x_data.keys()
     flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
-    flair_image = load_nii(flair_scans[0]).get_data()
-    seg_image = np.zeros_like(flair_image)
+    flair_image = load_nii(flair_scans[0])
+    seg_image = np.zeros_like(flair_image.get_data())
 
     
     # compute lesion segmentation in batches of size options['batch_size'] 
@@ -338,7 +338,7 @@ def test_scan(model, test_x_data, options, save_nifti= True, candidate_mask = No
         seg_image[x, y, z] = y_pred[:, 1]
 
     if save_nifti:
-        out_scan = nib.Nifti1Image(seg_image, np.eye(4))
+        out_scan = nib.Nifti1Image(seg_image, affine=flair_image.affine)
         out_scan.to_filename(os.path.join(options['test_folder'], options['test_scan'], options['experiment'], options['test_name']))
         #out_scan.to_filename(os.path.join(test_folder, scan, options['experiment'], options['test_name']))
 
@@ -356,12 +356,19 @@ def select_voxels_from_previous_model(model, train_x_data, options):
     modalities = train_x_data[scans[0]].keys()
 
     # select voxels for training. Discard CSF and darker WM in FLAIR. 
-    flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
-    selected_voxels = select_training_voxels(flair_scans, options['min_th'])
+    # flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
+    # selected_voxels = select_training_voxels(flair_scans, options['min_th'])
     
     # evaluate training scans using the learned model and extract voxels with probability higher than 0.5
     seg_mask  = [test_scan(model, dict(train_x_data.items()[s:s+1]), options, save_nifti = False) > 0.5 for s in range(len(scans))]
 
+    # check candidate segmentations:
+    # if no voxels have been selected, return candidate voxels on FLAIR modality > 2
+    flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
+    images = [load_nii(name).get_data() for name in flair_scans]
+    images_norm = [(im.astype(dtype=np.float32) - im[np.nonzero(im)].mean()) / im[np.nonzero(im)].std() for im in images]
+    seg_mask = [im > 2 if np.sum(seg) == 0 else seg for im, seg in zip(images_norm, seg_mask)]
+    
     return seg_mask
 
 
