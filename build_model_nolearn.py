@@ -164,7 +164,11 @@ def cascade_model(options):
             print "> CNN: Loading pretrained weights from the", options['pretrained_model'], "configuration"
             pretrained_model = os.path.join(options['weight_paths'], options['pretrained_model'],'nets')
             model = os.path.join(options['weight_paths'], options['experiment'])
-            os.system('cp -r ' + pretrained_model  + ' ' + model)
+            try:
+                shutil.copy(pretrained_model, model)
+            except:
+                shutil.copytree(pretrained_model, model)
+
             net1_w_def = os.path.join(model, 'nets', 'model_1.pkl')
             net2_w_def = os.path.join(model, 'nets', 'model_2.pkl')
 
