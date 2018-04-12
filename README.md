@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 # How to use it:
 
-The main funtionality of the method can be tested using this [notebook](https://github.com/sergivalverde/cnn-ms-lesion-segmentation/blob/master/example_1.ipynb). For leave-one-out experiments, the custom [script](https://github.com/sergivalverde/cnn-ms-lesion-segmentation/blob/master/train_leave_one_out.py) used in our experiments can be also used. More complex examples and database related noteboks  (MICCAI2008, MICCAI2016) are coming soon.
+The main funtionality of the method can be tested using this [notebook](https://github.com/sergivalverde/cnn-ms-lesion-segmentation/blob/master/example_1.ipynb). For leave-one-out experiments, the custom [script](https://github.com/sergivalverde/cnn-ms-lesion-segmentation/blob/master/train_leave_one_out.py) uqqqsed in our experiments can be also used. More complex examples and database related noteboks  (MICCAI2008, MICCAI2016) are coming soon.
 
 # Citing this work:
 

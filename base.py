@@ -3,8 +3,10 @@ import numpy as np
 from nibabel import load as load_nii
 import nibabel as nib
 from operator import itemgetter
-from build_model import fit_model
 from operator import add
+import keras
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+from nets import get_network
 
 
 def train_cascaded_model(model, train_x_data, train_y_data, options):
@@ -27,31 +29,52 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
     - trained model: list containing the 2 cascaded CNN models after training
     """
 
-    # ----------
-    # CNN1
-    # ----------
+    if options['data_generator'] is None:
 
-    print "> CNN: loading training data for first model"
-    X, Y, sel_voxels = load_training_data(train_x_data, train_y_data, options)
-    print '> CNN: train_x ', X.shape
+        # fit the first classifer
+        print "> CNN: fitting the first CNN model"
 
-    # If a full train is not selected, all CONV layers are freezed and
-    # negatives samples are resampled to increase the number of negative
-    # samples. Resampling is set to 10 by default
+        model[0] = fit_model(x_train=train_x_data,
+                             y_train=train_y_data,
+                             model=model[0],
+                             options=options)
 
-    model[0] = fit_model(model[0], X, Y, options)
+        # select candidates from the previous model
+        print "> CNN: Select candidates from the first CNN model"
+        selected_voxels = select_voxels_from_previous_model(model[0],
+                                                            train_x_data,
+                                                            options)
 
-    # ----------
-    # CNN2
-    # ----------
+        # fit the second classifer
+        print "> CNN: fitting the second CNN model"
+        model[1] = fit_model(x_train=train_x_data,
+                             y_train=train_y_data,
+                             model=model[1],
+                             previous_model=selected_voxels,
+                             options=options)
 
-    print '> CNN: loading training data for the second model'
-    X, Y, sel_voxels = load_training_data(train_x_data,
-                                          train_y_data,
-                                          options,
-                                          model=model[0])
-    print '> CNN: train_x ', X.shape
-    model[1] = fit_model(model[1], X, Y, options)
+    else:
+        # fit the first classifer
+        print "> CNN: fitting the first CNN model"
+
+        model[0] = fit_model_da(x_train=train_x_data,
+                                y_train=train_y_data,
+                                model=model[0],
+                                options=options)
+
+        # select candidates from the previous model
+        print "> CNN: Select candidates from the first CNN model"
+        selected_voxels = select_voxels_from_previous_model(model[0],
+                                                            train_x_data,
+                                                            options)
+
+        # fit the second classifer
+        print "> CNN: fitting the second CNN model"
+        model[1] = fit_model_da(x_train=train_x_data,
+                                y_train=train_y_data,
+                                model=model[1],
+                                previous_model=selected_voxels,
+                                options=options)
 
     return model
 
@@ -99,7 +122,7 @@ def test_cascaded_model(model, test_x_data, options):
                    test_x_data,
                    options,
                    save_nifti=True,
-                   candidate_mask=(t1 > 0.8))
+                   candidate_mask=(t1 > 0.5))
 
     # postprocess the output segmentation
     # obtain the orientation from the first scan used for testing
@@ -119,7 +142,6 @@ def test_cascaded_model(model, test_x_data, options):
 def load_training_data(train_x_data,
                        train_y_data,
                        options,
-                       model=None,
                        selected_voxels=None):
     '''
     Load training and label samples for all given scans and modalities.
@@ -149,7 +171,7 @@ def load_training_data(train_x_data,
     '''
 
     # get_scan names and number of modalities used
-    scans = train_x_data.keys()
+    scans = sorted(train_x_data.keys())
     modalities = train_x_data[scans[0]].keys()
 
     # select voxels for training:
@@ -157,16 +179,12 @@ def load_training_data(train_x_data,
     #  and darker WM in FLAIR, and use all remaining voxels.
     #  if model is passes, use the trained model to extract all voxels
     #  with probability > 0.5
-    if model is None:
+
+    if selected_voxels is None:
         flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
         selected_voxels = select_training_voxels(flair_scans,
                                                  options['min_th'])
-    elif selected_voxels is None:
-        selected_voxels = select_voxels_from_previous_model(model,
-                                                            train_x_data,
-                                                            options)
-    else:
-        pass
+
     # extract patches and labels for each of the modalities
     data = []
 
@@ -207,6 +225,39 @@ def load_training_data(train_x_data,
     return X, Y, selected_voxels
 
 
+def get_number_of_training_samples(train_y_data):
+
+    '''
+    Get the number of training samples.
+
+    Inputs:
+
+    train_y_data: a dictionary containing labels
+        train_y_data['scan_name'] = path_to_label
+
+    options: dictionary containing general hyper-parameters:
+        - options['min_th'] = min threshold to remove voxels for training
+        - options['size'] = tuple containing patch size, either 2D (p1, p2, 1)
+                            or 3D (p1, p2, p3)
+        - options['randomize_train'] = randomizes data
+       - options['fully_conv'] = fully_convolutional labels. If false,
+
+
+    Outputs:
+        - train_samples: np.array with the number of training samples x image
+
+    '''
+
+    # get_lesion masks and compute the number of training samples as the
+    # number of lesion samples x 2 (same number of lesion and healthy samples)
+    lesion_masks = [np.squeeze(
+        load_nii(train_y_data[key]).get_data()).astype(dtype=np.bool)
+                    for key in sorted(train_y_data.keys())]
+    train_samples = [np.sum(mask == 1) * 2 for mask in lesion_masks]
+
+    return train_samples
+
+
 def normalize_data(im, datatype=np.float32):
     """
     zero mean / 1 standard deviation image normalization
@@ -234,7 +285,8 @@ def select_training_voxels(input_masks, threshold=2, datatype=np.float32):
     """
 
     # load images and normalize their intensities
-    images = [load_nii(image_name).get_data() for image_name in input_masks]
+    images = [np.squeeze(load_nii(image_name).get_data())
+              for image_name in input_masks]
     images_norm = [normalize_data(im) for im in images]
     # select voxels with intensity higher than threshold
     rois = [image > threshold for image in images_norm]
@@ -264,11 +316,11 @@ def load_train_patches(x_data,
     """
 
     # load images and normalize their intensties
-    images = [load_nii(name).get_data() for name in x_data]
+    images = [np.squeeze(load_nii(name).get_data()) for name in x_data]
     images_norm = [normalize_data(im) for im in images]
 
     # load labels
-    lesion_masks = [load_nii(name).get_data().astype(dtype=np.bool)
+    lesion_masks = [np.squeeze(load_nii(name).get_data()).astype(dtype=np.bool)
                     for name in y_data]
     nolesion_masks = [np.logical_and(np.logical_not(lesion), brain)
                       for lesion, brain in zip(lesion_masks, selected_voxels)]
@@ -315,7 +367,7 @@ def load_train_patches(x_data,
 def load_test_patches(test_x_data,
                       patch_size,
                       batch_size,
-                      voxel_candidates = None,
+                      voxel_candidates=None,
                       datatype=np.float32):
     """
     Function generator to load test patches with size equal to patch_size,
@@ -343,7 +395,8 @@ def load_test_patches(test_x_data,
     images = []
 
     for m in modalities:
-        raw_images = [load_nii(test_x_data[s][m]).get_data() for s in scans]
+        raw_images = [np.squeeze(load_nii(test_x_data[s][m]).get_data())
+                      for s in scans]
         images.append([normalize_data(im) for im in raw_images])
 
     # select voxels for testing. Discard CSF and darker WM in FLAIR.
@@ -429,6 +482,7 @@ def test_scan(model,
             train_x_data['scan_name']['modality'] = path_to_image_modality
     - save_nifti: save image segmentation
     - candidate_mask: a binary masks containing voxels to classify
+    - check_intermediate: check if the file exists
 
     Output:
     - test_scan = Output image containing the probability output segmetnation
@@ -440,7 +494,8 @@ def test_scan(model,
     scans = test_x_data.keys()
     flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
     flair_image = load_nii(flair_scans[0])
-    seg_image = np.zeros_like(flair_image.get_data().astype('float32'))
+    seg_image = np.zeros_like(np.squeeze(
+        flair_image.get_data()).astype('float32'))
 
     if candidate_mask is not None:
         all_voxels = np.sum(candidate_mask)
@@ -457,9 +512,7 @@ def test_scan(model,
                                        candidate_mask)
     if options['debug'] is True:
         print "> DEBUG: testing current_batch:", batch.shape,
-
-    y_pred = model['net'].predict(np.squeeze(batch),
-                                  options['batch_size'])
+    y_pred = model['net'].predict(batch, batch_size=options['batch_size'])
     [x, y, z] = np.stack(centers, axis=1)
     seg_image[x, y, z] = y_pred[:, 1]
     if options['debug'] is True:
@@ -529,7 +582,7 @@ def select_voxels_from_previous_model(model, train_x_data, options):
     """
 
     # get_scan names and number of modalities used
-    scans = train_x_data.keys()
+    scans = sorted(train_x_data.keys())
 
     # select voxels for training. Discard CSF and darker WM in FLAIR.
     # flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
@@ -539,26 +592,37 @@ def select_voxels_from_previous_model(model, train_x_data, options):
     # probability higher than 0.5
 
     seg_masks = []
-    for scan, s in zip(train_x_data.keys(), range(len(scans))):
-        seg_mask = test_scan(model,
-                             dict(train_x_data.items()[s:s+1]),
-                             options, save_nifti=False)
-        seg_masks.append(seg_mask > 0.5)
 
-        if options['debug']:
-            flair = nib.load(train_x_data[scan]['FLAIR'])
-            tmp_seg = nib.Nifti1Image(seg_mask,
-                                      affine=flair.affine)
-            tmp_seg.to_filename(os.path.join(options['weight_paths'],
+    for scan, s in zip(sorted(train_x_data.keys()), range(len(scans))):
+        # if the same image exists, do not compute it
+        if os.path.exists(os.path.join(options['weight_paths'],
+                                       options['experiment'],
+                                       '.train',
+                                       scan + '_it0.nii.gz')):
+            seg_mask = load_nii(os.path.join(options['weight_paths'],
                                              options['experiment'],
                                              '.train',
-                                             scan + '_it0.nii.gz'))
+                                             scan + '_it0.nii.gz')).get_data()
+        else:
+            seg_mask = test_scan(model,
+                                 dict(train_x_data.items()[s:s+1]),
+                                 options, save_nifti=False)
+            if options['debug']:
+                flair = nib.load(train_x_data[scan]['FLAIR'])
+                tmp_seg = nib.Nifti1Image(seg_mask,
+                                          affine=flair.affine)
+                tmp_seg.to_filename(os.path.join(options['weight_paths'],
+                                                 options['experiment'],
+                                                 '.train',
+                                                 scan + '_it0.nii.gz'))
+
+        seg_masks.append(seg_mask > 0.5)
 
     # check candidate segmentations:
     # if no voxels have been selected, return candidate voxels on
     # FLAIR modality > 2
     flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
-    images = [load_nii(name).get_data() for name in flair_scans]
+    images = [np.squeeze(load_nii(name).get_data()) for name in flair_scans]
     images_norm = [normalize_data(im) for im in images]
 
     seg_mask = [im > 2 if np.sum(seg) == 0 else seg
@@ -621,3 +685,339 @@ def post_process_segmentation(input_scan,
                                            options['test_name']))
 
     return output_scan
+
+
+def transform(Xb, yb):
+    """
+    handle class for on-the-fly data augmentation on batches.
+    Applying 90,180 and 270 degrees rotations and flipping
+    """
+    # Flip a given percentage of the images at random:
+    bs = Xb.shape[0]
+    indices = np.random.choice(bs, bs / 2, replace=False)
+    x_da = Xb[indices]
+
+    # apply rotation to the input batch
+    rotate_90 = x_da[:, :, :, ::-1, :].transpose(0, 1, 2, 4, 3)
+    rotate_180 = rotate_90[:, :, :, :: -1, :].transpose(0, 1, 2, 4, 3)
+
+    # apply flipped versions of rotated patches
+    rotate_0_flipped = x_da[:, :, :, :, ::-1]
+    rotate_180_flipped = rotate_180[:, :, :, :, ::-1]
+
+    augmented_x = np.stack([rotate_180,
+                            rotate_0_flipped,
+                            rotate_180_flipped],
+                            axis=1)
+
+    # select random indices from computed transformations
+    r_indices = np.random.randint(0, 3, size=augmented_x.shape[0])
+
+    Xb[indices] = np.stack([augmented_x[i,
+                                        r_indices[i], :, :, :, :]
+                            for i in range(augmented_x.shape[0])])
+
+    return Xb, yb
+
+
+def da_generator_by_scan(x_train_,
+                         y_train_,
+                         options,
+                         batch_size=256,
+                         previous_model=None):
+
+    """
+    This generator trains the model loading scans consecutively. This means
+    that training images are called every epoch (slow!) but RAM memory remains
+    stable. This permit to train the model with an arbitrary number of training
+    images withoth crashing the computer.
+
+    The parameter options['load_data_batch] establishes the number of
+    training images that are loaded every time, so some time can be reduced if
+    enough RAM exists.
+
+    Once the data is loaded, data augmentation is applied on the fly.
+    """
+
+    image_names = sorted(x_train_.keys())
+    batch_images = options['load_data_batch']
+
+    while True:
+
+        # load training samples from training scans and yield them to the
+        # classifier
+        for k_index in range(0, len(image_names), batch_images):
+            x_ = {k: x_train_[k]
+                  for k in image_names[k_index:k_index + batch_images]}
+            y_ = {k: y_train_[k]
+                  for k in image_names[k_index:k_index + batch_images]}
+
+            prev_ = None
+            if previous_model is not None:
+                prev_ = previous_model[k_index:k_index + batch_images]
+
+            X, Y, _ = load_training_data(x_, y_,
+                                         options,
+                                         selected_voxels=prev_)
+
+            # randomize samples and convert labels to categorical
+            perm_indices = np.random.permutation(X.shape[0])
+            X = X[perm_indices]
+            Y = Y[perm_indices]
+            Y = keras.utils.to_categorical(Y == 1,
+                                           len(np.unique(Y == 1)))
+
+            # apply data transformations and yield the data
+            for b in range(0, X.shape[0], batch_size):
+                x_ = X[b:b+batch_size]
+                y_ = Y[b:b+batch_size]
+                x_, y_ = transform(x_, y_)
+                yield x_, y_
+
+
+def da_generator(x_train, y_train, batch_size=256):
+    """
+    Keras generator used for training with data augmentation. This generator
+    calls the data augmentation function yielding training samples. All
+    training samples are called in one load, so be careful of the RAM.
+    """
+    num_samples = x_train.shape[0]
+    while True:
+        for b in range(0, num_samples, batch_size):
+            x_ = x_train[b:b+batch_size]
+            y_ = y_train[b:b+batch_size]
+            x_, y_ = transform(x_, y_)
+            yield x_, y_
+
+
+def cascade_model(options):
+    """
+    3D cascade model using Nolearn and Lasagne
+
+    Inputs:
+    - model_options:
+    - weights_path: path to where weights should be saved
+
+    Output:
+    - nets = list of NeuralNets (CNN1, CNN2)
+    """
+
+    # save model to disk to re-use it. Create an experiment folder
+    # organize experiment
+    if not os.path.exists(os.path.join(options['weight_paths'],
+                                       options['experiment'])):
+        os.mkdir(os.path.join(options['weight_paths'],
+                              options['experiment']))
+    if not os.path.exists(os.path.join(options['weight_paths'],
+                                       options['experiment'], 'nets')):
+        os.mkdir(os.path.join(options['weight_paths'],
+                              options['experiment'], 'nets'))
+    if options['debug']:
+        if not os.path.exists(os.path.join(options['weight_paths'],
+                                           options['experiment'],
+                                           '.train')):
+            os.mkdir(os.path.join(options['weight_paths'],
+                                  options['experiment'],
+                                  '.train'))
+
+    # --------------------------------------------------
+    # model 1
+    # --------------------------------------------------
+
+    model = get_network(options)
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adadelta',
+                  metrics=['accuracy'])
+    if options['debug']:
+        model.summary()
+
+    # save weights
+    net_model = 'model_1'
+    net_weights_1 = os.path.join(options['weight_paths'],
+                                 options['experiment'],
+                                 'nets', net_model + '.hdf5')
+
+    net1 = {}
+    net1['net'] = model
+    net1['weights'] = net_weights_1
+    net1['history'] = None
+
+    # --------------------------------------------------
+    # model 2
+    # --------------------------------------------------
+
+    model2 = get_network(options)
+    model2.compile(loss='categorical_crossentropy',
+                   optimizer='adadelta',
+                   metrics=['accuracy'])
+    if options['debug']:
+        model2.summary()
+
+    # save weights
+    net_model = 'model_2'
+    net_weights_2 = os.path.join(options['weight_paths'],
+                                 options['experiment'],
+                                 'nets', net_model + '.hdf5')
+
+    net2 = {}
+    net2['net'] = model2
+    net2['weights'] = net_weights_2
+    net2['history'] = None
+
+    # load predefined weights if applicable
+
+    if options['load_weights'] is True:
+        print "> CNN: loading weights from", \
+            options['experiment'], 'configuration'
+        print net_weights_1
+        print net_weights_2
+
+        try:
+            net1['net'].load_weights(net_weights_1, by_name=True)
+        except:
+            print ">ERROR: Selected weights do not exist:', net_weights_1"
+        try:
+            net2['net'].load_weights(net_weights_2, by_name=True)
+        except:
+            print ">ERROR: Selected weights do not exist:', net_weights_2"
+
+    return [net1, net2]
+
+
+def fit_model(x_train, y_train, model, options, previous_model=None):
+    """
+    fit the cascaded model without using a data generator model
+
+    """
+    num_epochs = options['max_epochs']
+    train_split_perc = options['train_split']
+    batch_size = options['batch_size']
+
+    # load data
+    print "> CNN: loading training data for first model"
+    x_train, y_train, sel_voxels = load_training_data(x_train,
+                                                      y_train,
+                                                      options,
+                                                      selected_voxels=previous_model)
+    print '> CNN: train_x ', x_train.shape
+
+    # convert labels to categorical
+    y_train = keras.utils.to_categorical(y_train == 1,
+                                         len(np.unique(y_train == 1)))
+
+    # split training and validation
+    perm_indices = np.random.permutation(x_train.shape[0])
+    train_val = int(len(perm_indices)*train_split_perc)
+    x_train_ = x_train[:train_val]
+    y_train_ = y_train[:train_val]
+    x_val_ = x_train[train_val:]
+    y_val_ = y_train[train_val:]
+    steps_per_epoch = x_train_.shape[0] / batch_size
+
+    h = model['net'].fit_generator(da_generator(x_train_,
+                                                y_train_,
+                                                options,
+                                                batch_size=batch_size),
+                                   validation_data=(x_val_, y_val_),
+                                   epochs=num_epochs,
+                                   steps_per_epoch=steps_per_epoch,
+                                   verbose=options['net_verbose'],
+                                   callbacks=[ModelCheckpoint(model['weights'],
+                                                              save_best_only=True,
+                                                              save_weights_only=True),
+                                              EarlyStopping(monitor='val_loss',
+                                                            min_delta=0,
+                                                            patience=options['patience'],
+                                                            verbose=0,
+                                                            mode='auto')])
+
+    model['history'] = h
+    model['net'].load_weights(model['weights'])
+
+    return model
+
+
+def fit_model_da(x_train, y_train, model, options, previous_model=None):
+    """
+    fit the cascaded model without using a data gemerator. Training images
+    are loaded when needed.
+
+    """
+    num_epochs = options['max_epochs']
+    train_split_perc = options['train_split']
+    batch_size = options['batch_size']
+
+    # get the number of training samples to set up the iterator
+    train_samples = get_number_of_training_samples(y_train)
+    train_scan_keys = sorted(x_train.keys())
+
+    '''
+    # randomize training scans if selected
+    if options['randomize_train']:
+        permuted_index = np.random.permutation(len(train_scan_keys))
+        train_scan_keys = np.array(train_scan_keys)[permuted_index]
+        train_samples = np.array(train_samples)[permuted_index]
+        if previous_model is not None:
+            previous_model = np.array(previous_model)[permuted_index]
+    '''
+
+    # split train and validation scans before training
+    index = int((1-train_split_perc) * len(train_scan_keys))
+    x_train_ = {t: x_train[t] for t in train_scan_keys[:index]}
+    y_train_ = {t: y_train[t] for t in train_scan_keys[:index]}
+    x_val_ = {t: x_train[t] for t in train_scan_keys[index:]}
+    y_val_ = {t: y_train[t] for t in train_scan_keys[index:]}
+    train_steps = np.sum(train_samples[:index]) / batch_size
+    val_steps = np.sum(train_samples[index:]) / batch_size
+
+    # some debug printings of the training and validation sets
+    if options['debug']:
+        print "--------------------------------------------------"
+        print "> DEBUG: Training scans"
+        print "--------------------------------------------------"
+        for s, t in zip(sorted(x_train_.keys()), train_samples[:index]):
+            print s, "training samples:", t
+
+        print "--------------------------------------------------"
+        print "> DEBUG: Validation scans"
+        print "--------------------------------------------------"
+        for s, t in zip(sorted(x_val_.keys()), train_samples[index:]):
+            print s, "validation samples:", t
+        print "--------------------------------------------------\n"
+
+
+    prev_model_train = None
+    prev_model_val = None
+
+    if previous_model is not None:
+        prev_model_train = previous_model[:index]
+        prev_model_val = previous_model[index:]
+
+    # both training and validation data are connected to a data generator.
+    # train and validation steps are mandatory.
+    h = model['net'].fit_generator(da_generator_by_scan(x_train_,
+                                                        y_train_,
+                                                        options,
+                                                        batch_size=batch_size,
+                                                        previous_model=prev_model_train),
+                                   steps_per_epoch=train_steps,
+                                   validation_data=da_generator_by_scan(x_val_,
+                                                                        y_val_,
+                                                                        options,
+                                                                        batch_size=batch_size,
+                                                                        previous_model=prev_model_val),
+                                   validation_steps=val_steps,
+                                   epochs=num_epochs,
+                                   verbose=options['net_verbose'],
+                                   callbacks=[ModelCheckpoint(model['weights'],
+                                                              save_best_only=True,
+                                                              save_weights_only=True),
+                                              EarlyStopping(monitor='val_loss',
+                                                            min_delta=0,
+                                                            patience=options['patience'],
+                                                            verbose=0,
+                                                            mode='auto')])
+    model['history'] = h
+    model['net'].load_weights(model['weights'])
+
+    return model

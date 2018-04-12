@@ -36,6 +36,8 @@ modalities = options['modalities']
 x_names = options['x_names']
 y_names = options['y_names']
 
+# on leave one out experiments, training and test sets are the same.
+options['test_folder'] = options['train_folder']
 for scan in list_of_scans:
 
     # select training leaving-out the current scan
@@ -54,7 +56,7 @@ for scan in list_of_scans:
         os.mkdir(os.path.join(exp_folder,'nets'))
         os.mkdir(os.path.join(exp_folder,'.train'))
 
-    options['test_name'] = scan+ '_' + options['experiment'] + '.nii.gz'
+    options['test_name'] = scan + '_' + options['experiment'] + '.nii.gz'
     options['test_scan'] = scan
 
     # train the model for the current scan
@@ -65,7 +67,8 @@ for scan in list_of_scans:
     # --------------------------------------------------
     # initialize the CNN
     # --------------------------------------------------
-    options['weight_paths'] = os.path.join(options['test_folder'], options['test_scan'])
+    options['weight_paths'] = os.path.join(options['test_folder'],
+                                           options['test_scan'])
     model = cascade_model(options)
 
     # --------------------------------------------------
