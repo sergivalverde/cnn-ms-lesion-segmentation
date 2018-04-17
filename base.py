@@ -929,7 +929,7 @@ def fit_model_da(x_train, y_train, model, options, previous_model=None):
     train_samples = get_number_of_training_samples(y_train)
     train_scan_keys = sorted(x_train.keys())
 
-    '''
+
     # randomize training scans if selected
     if options['randomize_train']:
         permuted_index = np.random.permutation(len(train_scan_keys))
@@ -937,7 +937,7 @@ def fit_model_da(x_train, y_train, model, options, previous_model=None):
         train_samples = np.array(train_samples)[permuted_index]
         if previous_model is not None:
             previous_model = np.array(previous_model)[permuted_index]
-    '''
+
 
     # split train and validation scans before training
     index = int((1-train_split_perc) * len(train_scan_keys))

@@ -13,14 +13,14 @@ options = {}
 # path to training image folder. In all our experiments, training images were
 # inside a folder and image modalities were consistent across training images.
 # In the case of leave-one-out experiments, the same folder is used
-options['train_folder'] = '/mnt/DATA/w/CNN_NI/test_set2'
+options['train_folder'] = '/mnt/DATA/w/CNN_NI/test_sidney'
 options['test_folder'] = '/path/to/testing/data'
 
 # image modalities used (T1, FLAIR, PD, T2, ...)
 options['modalities'] = ['T1', 'FLAIR']
 
 # image modalities nifti file names in the same order of options['modalities']
-options['x_names'] = ['T1.nii.gz', 'FLAIR.nii.gz']
+options['x_names'] = ['T1_brain.nii.gz', 'FLAIR_brain.nii.gz']
 
 # lesion annotation nifti file names
 options['y_names'] = ['lesion.nii.gz']
@@ -30,7 +30,7 @@ options['y_names'] = ['lesion.nii.gz']
 # --------------------------------------------------
 
 # Select an experiment name to store net weights and segmentation masks
-options['experiment'] = 'test_CNN_test_data'
+options['experiment'] = 'test_CNN_test_data_sidney'
 
 # use data generators (slow but necessary on large datasets)
 # When used, training data is loaded every consecutively when needed.
@@ -76,7 +76,7 @@ options['load_weights'] = True
 options['train_split'] = 0.25
 
 # maximum number of epochs used to train the model
-options['max_epochs'] = 10
+options['max_epochs'] = 200
 
 # maximum number of epochs without improving validation before
 # stopping training
