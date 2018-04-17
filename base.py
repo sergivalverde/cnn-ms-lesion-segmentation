@@ -29,7 +29,7 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
     - trained model: list containing the 2 cascaded CNN models after training
     """
 
-    if options['data_generator'] is None:
+    if options['data_generator'] is False:
 
         # fit the first classifer
         print "> CNN: fitting the first CNN model"
@@ -41,6 +41,7 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
 
         # select candidates from the previous model
         print "> CNN: Select candidates from the first CNN model"
+
         selected_voxels = select_voxels_from_previous_model(model[0],
                                                             train_x_data,
                                                             options)
@@ -63,6 +64,7 @@ def train_cascaded_model(model, train_x_data, train_y_data, options):
                                 options=options)
 
         # select candidates from the previous model
+
         print "> CNN: Select candidates from the first CNN model"
         selected_voxels = select_voxels_from_previous_model(model[0],
                                                             train_x_data,
@@ -181,8 +183,7 @@ def load_training_data(train_x_data,
     #  with probability > 0.5
 
     if selected_voxels is None:
-        flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
-        selected_voxels = select_training_voxels(flair_scans,
+        selected_voxels = select_training_voxels(train_x_data,
                                                  options['min_th'])
 
     # extract patches and labels for each of the modalities
@@ -191,9 +192,12 @@ def load_training_data(train_x_data,
     for m in modalities:
         x_data = [train_x_data[s][m] for s in scans]
         y_data = [train_y_data[s] for s in scans]
+        sel_voxels = [selected_voxels[s] for s in scans]
+
+
         x_patches, y_patches = load_train_patches(x_data,
                                                   y_data,
-                                                  selected_voxels,
+                                                  sel_voxels,
                                                   options['patch_size'])
         data.append(x_patches)
 
@@ -269,7 +273,7 @@ def normalize_data(im, datatype=np.float32):
     return im
 
 
-def select_training_voxels(input_masks, threshold=2, datatype=np.float32):
+def select_training_voxels(train_x_data, threshold=2, datatype=np.float32):  #
     """
     Select voxels for training based on a intensity threshold
 
@@ -283,13 +287,11 @@ def select_training_voxels(input_masks, threshold=2, datatype=np.float32):
         - rois: list where each element contains the subject binary mask for
           selected voxels [len(x), len(y), len(z)]
     """
+    rois = {}
+    for s in train_x_data.keys():
+        scan = np.squeeze(load_nii(train_x_data[s]['FLAIR']).get_data())
+        rois[s] = normalize_data(scan) > threshold
 
-    # load images and normalize their intensities
-    images = [np.squeeze(load_nii(image_name).get_data())
-              for image_name in input_masks]
-    images_norm = [normalize_data(im) for im in images]
-    # select voxels with intensity higher than threshold
-    rois = [image > threshold for image in images_norm]
     return rois
 
 
@@ -388,39 +390,21 @@ def load_test_patches(test_x_data,
     """
 
     # get scan names and number of modalities used
-    scans = test_x_data.keys()
-    modalities = test_x_data[scans[0]].keys()
-
-    # load all image modalities and normalize intensities
-    images = []
-
-    for m in modalities:
-        raw_images = [np.squeeze(load_nii(test_x_data[s][m]).get_data())
-                      for s in scans]
-        images.append([normalize_data(im) for im in raw_images])
+    scan = test_x_data.keys()[0]
+    modalities = test_x_data[scan].keys()
 
     # select voxels for testing. Discard CSF and darker WM in FLAIR.
     # If voxel_candidates is not selected, using intensity > 0.5 in FLAIR,
     # else use the binary mask to extract candidate voxels
     if voxel_candidates is None:
-        flair_scans = [test_x_data[s]['FLAIR'] for s in scans]
-        selected_voxels = [get_mask_voxels(mask)
-                           for mask in select_training_voxels(flair_scans,
-                                                              0.5)][0]
-    else:
-        selected_voxels = get_mask_voxels(voxel_candidates)
+        voxel_candidates = select_training_voxels(test_x_data, 0.5)[scan]
 
-    # yield data for testing with size equal to batch_size
-    # for i in range(0, len(selected_voxels), batch_size):
-    #     c_centers = selected_voxels[i:i+batch_size]
-    #     X = []
-    #     for m, image_modality in zip(modalities, images):
-    #         X.append(get_patches(image_modality[0], c_centers, patch_size))
-    #     yield np.stack(X, axis=1), c_centers
+    selected_voxels = get_mask_voxels(voxel_candidates)
 
     X = []
-    for image_modality in images:
-        X.append(get_patches(image_modality[0], selected_voxels, patch_size))
+    for m in modalities:
+        im = np.squeeze(load_nii(test_x_data[scan][m]).get_data())
+        X.append(get_patches(normalize_data(im), selected_voxels, patch_size))
 
     Xs = np.stack(X, axis=1)
     return Xs, selected_voxels
@@ -591,7 +575,7 @@ def select_voxels_from_previous_model(model, train_x_data, options):
     # evaluate training scans using the learned model and extract voxels with
     # probability higher than 0.5
 
-    seg_masks = []
+    seg_masks = {}
 
     for scan, s in zip(sorted(train_x_data.keys()), range(len(scans))):
         # if the same image exists, do not compute it
@@ -605,7 +589,7 @@ def select_voxels_from_previous_model(model, train_x_data, options):
                                              scan + '_it0.nii.gz')).get_data()
         else:
             seg_mask = test_scan(model,
-                                 dict(train_x_data.items()[s:s+1]),
+                                 {scan: train_x_data[scan]},
                                  options, save_nifti=False)
             if options['debug']:
                 flair = nib.load(train_x_data[scan]['FLAIR'])
@@ -616,19 +600,18 @@ def select_voxels_from_previous_model(model, train_x_data, options):
                                                  '.train',
                                                  scan + '_it0.nii.gz'))
 
-        seg_masks.append(seg_mask > 0.5)
+        # check candidate segmentations
+        # if no voxels have been selected, return candidate voxels on
+        # FLAIR modality > 0.5
+        if np.sum(seg_mask) == 0:
+            flair_scan = train_x_data[scan]['FLAIR']
+            image = np.squeeze(load_nii(flair_scan).get_data())
+            image_norm = normalize_data(image)
+            seg_mask = image_norm > 0.5
 
-    # check candidate segmentations:
-    # if no voxels have been selected, return candidate voxels on
-    # FLAIR modality > 2
-    flair_scans = [train_x_data[s]['FLAIR'] for s in scans]
-    images = [np.squeeze(load_nii(name).get_data()) for name in flair_scans]
-    images_norm = [normalize_data(im) for im in images]
+        seg_masks[scan] = seg_mask > 0.5
 
-    seg_mask = [im > 2 if np.sum(seg) == 0 else seg
-                for im, seg in zip(images_norm, seg_masks)]
-
-    return seg_mask
+    return seg_masks
 
 
 def post_process_segmentation(input_scan,
@@ -752,13 +735,9 @@ def da_generator_by_scan(x_train_,
             y_ = {k: y_train_[k]
                   for k in image_names[k_index:k_index + batch_images]}
 
-            prev_ = None
-            if previous_model is not None:
-                prev_ = previous_model[k_index:k_index + batch_images]
-
             X, Y, _ = load_training_data(x_, y_,
                                          options,
-                                         selected_voxels=prev_)
+                                         selected_voxels=previous_model)
 
             # randomize samples and convert labels to categorical
             perm_indices = np.random.permutation(X.shape[0])
@@ -828,8 +807,8 @@ def cascade_model(options):
     model.compile(loss='categorical_crossentropy',
                   optimizer='adadelta',
                   metrics=['accuracy'])
-    if options['debug']:
-        model.summary()
+    # if options['debug']:
+    #     model.summary()
 
     # save weights
     net_model = 'model_1'
@@ -850,8 +829,8 @@ def cascade_model(options):
     model2.compile(loss='categorical_crossentropy',
                    optimizer='adadelta',
                    metrics=['accuracy'])
-    if options['debug']:
-        model2.summary()
+    # if options['debug']:
+    #    model2.summary()
 
     # save weights
     net_model = 'model_2'
@@ -916,7 +895,6 @@ def fit_model(x_train, y_train, model, options, previous_model=None):
 
     h = model['net'].fit_generator(da_generator(x_train_,
                                                 y_train_,
-                                                options,
                                                 batch_size=batch_size),
                                    validation_data=(x_val_, y_val_),
                                    epochs=num_epochs,
@@ -970,28 +948,21 @@ def fit_model_da(x_train, y_train, model, options, previous_model=None):
     train_steps = np.sum(train_samples[:index]) / batch_size
     val_steps = np.sum(train_samples[index:]) / batch_size
 
-    # some debug printings of the training and validation sets
+
     if options['debug']:
         print "--------------------------------------------------"
         print "> DEBUG: Training scans"
         print "--------------------------------------------------"
-        for s, t in zip(sorted(x_train_.keys()), train_samples[:index]):
-            print s, "training samples:", t
+        for s in sorted(x_train_.keys()):
+            print s
 
         print "--------------------------------------------------"
         print "> DEBUG: Validation scans"
         print "--------------------------------------------------"
-        for s, t in zip(sorted(x_val_.keys()), train_samples[index:]):
-            print s, "validation samples:", t
+        for s in sorted(x_val_.keys()):
+            print s
         print "--------------------------------------------------\n"
 
-
-    prev_model_train = None
-    prev_model_val = None
-
-    if previous_model is not None:
-        prev_model_train = previous_model[:index]
-        prev_model_val = previous_model[index:]
 
     # both training and validation data are connected to a data generator.
     # train and validation steps are mandatory.
@@ -999,13 +970,13 @@ def fit_model_da(x_train, y_train, model, options, previous_model=None):
                                                         y_train_,
                                                         options,
                                                         batch_size=batch_size,
-                                                        previous_model=prev_model_train),
+                                                        previous_model=previous_model),
                                    steps_per_epoch=train_steps,
                                    validation_data=da_generator_by_scan(x_val_,
                                                                         y_val_,
                                                                         options,
                                                                         batch_size=batch_size,
-                                                                        previous_model=prev_model_val),
+                                                                        previous_model=previous_model),
                                    validation_steps=val_steps,
                                    epochs=num_epochs,
                                    verbose=options['net_verbose'],

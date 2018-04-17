@@ -30,7 +30,7 @@ options['y_names'] = ['lesion.nii.gz']
 # --------------------------------------------------
 
 # Select an experiment name to store net weights and segmentation masks
-options['experiment'] = 'test_CNN'
+options['experiment'] = 'test_CNN_test_data'
 
 # use data generators (slow but necessary on large datasets)
 # When used, training data is loaded every consecutively when needed.
@@ -76,7 +76,7 @@ options['load_weights'] = True
 options['train_split'] = 0.25
 
 # maximum number of epochs used to train the model
-options['max_epochs'] = 2
+options['max_epochs'] = 10
 
 # maximum number of epochs without improving validation before
 # stopping training
