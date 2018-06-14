@@ -1,4 +1,10 @@
 
+# WARNING:
+
+*DEPRECATED*: This repository is not maintained anymore. For a new
+version of the toolbox, see [https://github.com/sergivalverde/nicMSlesions]
+
+
 # Multiple Sclerosis (MS) lesion segmentation of MRI images using a cascade of two 3D convolutional neural networks
 
 This repository implements the method proposed in the [NeuroImage publication](https://doi.org/10.1016/j.neuroimage.2017.04.034), but an electronic preprint is available from [Arxiv](http://arxiv.org/abs/1702.04869):
