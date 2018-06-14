@@ -49,7 +49,7 @@ options['load_data_batch'] = 1
 options['min_th'] = 0.5
 
 # randomize training features before fitting the model.
-options['randomize_train'] = True
+options['randomize_train'] = False
 
 # Select between pixel-wise or fully-convolutional training models.
 # Although implemented, fully-convolutional
@@ -69,14 +69,14 @@ options['patch_size'] = (11, 11, 11)
 # file paths to store the network parameter weights.
 # These can be reused for posterior use.
 options['weight_paths'] = None
-options['load_weights'] = True
+options['load_weights'] = False
 
 # percentage of the training vector that is going to be used to
 # validate the model during training
 options['train_split'] = 0.25
 
 # maximum number of epochs used to train the model
-options['max_epochs'] = 200
+options['max_epochs'] = 20
 
 # maximum number of epochs without improving validation before
 # stopping training
